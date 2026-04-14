@@ -38,7 +38,7 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
       const linksArray = typeof links === 'string' ? JSON.parse(links) : links;
       for (const link of linksArray) {
           const linkId = `LNK-${Date.now()}${Math.floor(Math.random() * 100)}`;
-          await pool.query('INSERT INTO notice_links (id, noticeId, label, url) VALUES (?, ?, ?, ?)', [linkId.substring(0, 20), noticeId, link.label, link.url]);
+          await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, link.label, link.url]);
       }
     }
 
@@ -47,12 +47,12 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
       if (files['document']) {
         const fileUrl = `/uploads/documents/${files['document'][0].filename}`;
         const linkId = `LNK-${Date.now()}${Math.random().toString().slice(2, 5)}`;
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url) VALUES (?, ?, ?, ?)', [linkId.substring(0, 20), noticeId, 'Attachment', fileUrl]);
+        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, 'Attachment', fileUrl]);
       }
       if (files['formFile']) {
         const fileUrl = `/uploads/documents/${files['formFile'][0].filename}`;
         const linkId = `LNK-${Date.now() + 1}`; // Ensure uniqueness
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url) VALUES (?, ?, ?, ?)', [linkId.substring(0, 20), noticeId, 'Form Document', fileUrl]);
+        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, 'Form Document', fileUrl]);
       }
     }
 
@@ -83,12 +83,12 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
       if (files['document']) {
         const fileUrl = `/uploads/documents/${files['document'][0].filename}`;
         const linkId = `LNK-${Date.now()}`.substring(0, 20);
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url) VALUES (?, ?, ?, ?)', [linkId, id, 'Updated Attachment', fileUrl]);
+        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId, id, 'Updated Attachment', fileUrl]);
       }
       if (files['formFile']) {
         const fileUrl = `/uploads/documents/${files['formFile'][0].filename}`;
         const linkId = `LNK-${Date.now() + 1}`.substring(0, 20);
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url) VALUES (?, ?, ?, ?)', [linkId, id, 'Updated Form Document', fileUrl]);
+        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId, id, 'Updated Form Document', fileUrl]);
       }
     }
 

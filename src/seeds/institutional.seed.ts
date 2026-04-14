@@ -1,12 +1,6 @@
 import pool from '../config/db.js';
 
 export const seedInstitutional = async () => {
-    const banners = [
-        ['SLD-1774530198992','','','http://localhost:5001/uploads/images/1774530198988-320953167.jpeg','',4,0,'home'],
-        ['SLD-1774530876636','','','http://localhost:5001/uploads/images/1774530876618-210318391.jpeg','',1,0,'home'],
-        ['SLD-1774530897962','','','/uploads/images/1774530897957-265544988.jpeg','',2,0,'home'],
-        ['SLD-1774530956737','','','/uploads/images/1774530956734-161208674.jpeg','',3,0,'home']
-    ];
 
     const toppers = [
         ['TOP-1774528140494','S Esthar Rani','#1','uploads/images/topper_1.jpeg','University Rank'],
@@ -41,13 +35,6 @@ export const seedInstitutional = async () => {
 
     console.log('🏛️ Seeding Institutional Data...');
     
-    for (const [id, t, s, img, l, ord, active, tag] of banners) {
-        await pool.query(
-            'INSERT OR REPLACE INTO hero_slides (id, title, subtitle, imageUrl, link, `order`, isActive, tag) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [id, t, s, img, l, ord, active, tag]
-        );
-    }
-
     for (const [id, n, r, img, tag] of toppers) {
         await pool.query(
             'INSERT OR REPLACE INTO toppers (id, name, rank, imageUrl, rankTag) VALUES (?, ?, ?, ?, ?)',
@@ -76,5 +63,5 @@ export const seedInstitutional = async () => {
         );
     }
 
-    console.log(`✅ Seeded ${banners.length} banners, ${toppers.length} toppers, ${aqars.length} reports, and ${metrics.length} metrics.`);
+    console.log(`✅ Seeded ${toppers.length} toppers, ${aqars.length} reports, and ${metrics.length} metrics.`);
 };

@@ -7,13 +7,13 @@ import heroRoutes from './routes/heroRoutes.js';
 import staffRoutes from './routes/staffRoutes.js';
 import noticeRoutes from './routes/noticeRoutes.js';
 import galleryRoutes from './routes/galleryRoutes.js';
-import milestonesRoutes from './routes/milestonesRoutes.js';
 import toppersRoutes from './routes/toppersRoutes.js';
 import aqarRoutes from './routes/aqarRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
-import dashboardController from './controllers/dashboardController.js';
+import aboutRoutes from './routes/aboutRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
 import path from 'path';
@@ -72,15 +72,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api', authMiddleware);
 
 app.use('/api/hero', heroRoutes);
-app.use('/api/institutional-milestones', milestonesRoutes); // Renamed for clarity
-app.use('/api/hall-of-fame', toppersRoutes); // Toppers management section
+app.use('/api/hall-of-fame', toppersRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/notices', noticeRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/aqars', aqarRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/settings', settingsRoutes);
-app.get('/api/dashboard/stats', (dashboardController as any).getDashboardStats);
+app.use('/api/about', aboutRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Error Handling
 app.use(notFoundHandler);

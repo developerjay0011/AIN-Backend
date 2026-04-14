@@ -5,11 +5,28 @@ const setupDatabase = async () => {
   try {
     console.log('⏳ Setting up database...');
 
+    const tables = [
+      'hero_slides',
+      'achievements',
+      'gallery_events',
+      'gallery_media',
+      'notices',
+      'notice_links',
+      'staff',
+      'toppers',
+      'aqars',
+      'admins',
+      'quality_metrics',
+      'settings'
+    ];
+
+    for (const table of tables) {
+      await pool.query(`DROP TABLE IF EXISTS ${table}`);
+    }
+
     const createTablesQueries = [
       `CREATE TABLE IF NOT EXISTS hero_slides (
         id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        subtitle VARCHAR(255),
         imageUrl TEXT NOT NULL,
         link VARCHAR(255),
         \`order\` INT DEFAULT 0,

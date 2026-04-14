@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { seedHero } from './hero.seed.js';
 import { seedStaff } from './staff.seed.js';
 import { seedAdmins } from './admins.seed.js';
 import { seedEvents } from './events.seed.js';
@@ -30,6 +31,7 @@ const runAllSeeds = async () => {
         await seedNotices();
         await seedInstitutional();
         await seedSettings();
+        await seedHero();
 
         console.log('-----------------------------------');
         console.log('✨ ALL PRODUCTION SEEDS COMPLETED! ✨');

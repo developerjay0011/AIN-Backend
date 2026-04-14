@@ -78,13 +78,13 @@ export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
   if (password) {
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
-      'UPDATE admins SET username = ?, password = ? WHERE id = ?',
+      'UPDATE admins SET username = ?, password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
       [username, hashedPassword, id]
     );
   } else {
     // Only update username
     await pool.query(
-      'UPDATE admins SET username = ? WHERE id = ?',
+      'UPDATE admins SET username = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
       [username, id]
     );
   }

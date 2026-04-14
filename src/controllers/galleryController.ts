@@ -49,7 +49,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         const url = `/uploads/${folder}/${file.filename}`;
         const type = file.mimetype.startsWith('video/') ? 'video' : 'photo';
         await pool.query(
-          'INSERT INTO gallery_media (id, eventId, type, url, name) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
           [mediaId, eventId, type, url, file.originalname]
         );
       }
@@ -61,7 +61,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         if (!m.id) {
           const mediaId = `MED-${Date.now()}`;
           await pool.query(
-            'INSERT INTO gallery_media (id, eventId, type, url, name) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
             [mediaId, eventId, m.type || 'photo', m.url, m.name]
           );
         }
@@ -112,7 +112,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         const url = `/uploads/${folder}/${file.filename}`;
         const type = file.mimetype.startsWith('video/') ? 'video' : 'photo';
         await pool.query(
-          'INSERT INTO gallery_media (id, eventId, type, url, name) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
           [mediaId, id, type, url, file.originalname]
         );
       }

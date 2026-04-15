@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import os from 'os';
 import heroRoutes from './routes/heroRoutes.js';
 import staffRoutes from './routes/staffRoutes.js';
 import noticeRoutes from './routes/noticeRoutes.js';
@@ -86,9 +87,25 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+// Get local network IP
+const getLocalIP = (): string => {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name] || []) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'unknown';
+};
+
 // Start Server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  const localIP = getLocalIP();
+  console.log(`🚀 Server is running on:`);
+  console.log(`   Local:   http://localhost:${PORT}`);
+  console.log(`   Network: http://${localIP}:${PORT}`);
 });
 
 /**

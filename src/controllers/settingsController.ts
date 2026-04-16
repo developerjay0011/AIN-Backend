@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
+import { formatDataUrls } from '../utils/urlHelper.js';
+
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
@@ -24,9 +26,12 @@ export const getAllSettings = asyncHandler(async (req: Request, res: Response) =
     settingsMap[row.key_name] = value;
   });
 
+  const formattedRows = formatDataUrls(rows);
+  const formattedMap = formatDataUrls(settingsMap);
+
   res.json(ApiResponse.success({
-    list: rows,
-    map: settingsMap
+    list: formattedRows,
+    map: formattedMap
   }, 'Settings fetched successfully'));
 });
 
@@ -55,7 +60,38 @@ export const uploadLogo = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, 'Please upload a logo image');
   }
 
-  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-  
-  res.json(ApiResponse.success({ url: fileUrl }, 'Logo uploaded successfully'));
+  const { key_name, index } = req.body;
+  const fileUrl = `/uploads/images/${req.file.filename}`; // Store relative path for portability
+  const fullUrl = `${req.protocol}://${req.get('host')}${fileUrl}`;
+
+  if (key_name) {
+    // Fetch current setting to see if it's a list or simple value
+    const [rows]: any = await pool.query('SELECT * FROM settings WHERE key_name = ?', [key_name]);
+    
+    if (rows.length > 0) {
+      const setting = rows[0];
+      let newValue: any = fileUrl;
+
+      if (setting.type === 'json' && index !== undefined) {
+        try {
+          const currentList = JSON.parse(setting.value);
+          if (Array.isArray(currentList) && currentList[parseInt(index)]) {
+            currentList[parseInt(index)].logo = fileUrl;
+            newValue = JSON.stringify(currentList);
+          } else {
+            newValue = setting.value; // Fallback if index out of bounds
+          }
+        } catch (e) {
+          console.error('Error parsing JSON setting:', e);
+        }
+      }
+
+      await pool.query(
+        'UPDATE settings SET value = ?, updatedAt = CURRENT_TIMESTAMP WHERE key_name = ?',
+        [newValue, key_name]
+      );
+    }
+  }
+
+  res.json(ApiResponse.success({ url: fullUrl }, 'Logo uploaded and registered successfully'));
 });

@@ -9,10 +9,14 @@ const BASE_URL = process.env.APP_URL || 'http://localhost:5001';
  */
 export const formatFileUrl = (path: string | null | undefined): string => {
   if (!path) return '';
-  if (path.startsWith('http')) return path;
+  
+  // If the path contains localhost:5001, strip it to make it relative
+  let cleanPath = path.replace(/http:\/\/localhost:5001/g, '');
+  
+  if (cleanPath.startsWith('http')) return cleanPath;
   
   // Ensure we don't double slash
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
   return `${BASE_URL}${cleanPath}`;
 };
 
@@ -37,7 +41,10 @@ export const formatDataUrls = (data: any): any => {
         key.toLowerCase().includes('document') || 
         key.toLowerCase().includes('file') ||
         key.toLowerCase().includes('url') ||
-        value.startsWith('/uploads/')
+        key.toLowerCase().includes('logo') ||
+        key.toLowerCase().includes('icon') ||
+        value.includes('/uploads/') ||
+        value.includes('localhost:5001')
       )) {
         formatted[key] = formatFileUrl(value);
       } else if (typeof value === 'object') {

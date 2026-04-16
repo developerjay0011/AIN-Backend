@@ -34,7 +34,14 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: (origin, callback) => {
-    const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
+    const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+
+    // If set to *, allow all origins
+    if (corsOrigin === '*') {
+      return callback(null, true);
+    }
+
+    const allowedOrigins = corsOrigin.split(',');
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {

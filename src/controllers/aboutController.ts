@@ -39,10 +39,34 @@ export const getAboutContent = asyncHandler(async (req: Request, res: Response) 
  * Update About Us content
  */
 export const updateAboutContent = asyncHandler(async (req: Request, res: Response) => {
-  const content = req.body; // Expecting { ABOUT_MILESTONES: [], DIRECTOR_MESSAGE: {}, ... }
+  // If using FormData, the numeric/JSON data might be in a 'data' field
+  const content = req.body.data ? JSON.parse(req.body.data) : req.body;
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
   if (!content || typeof content !== 'object') {
     throw new ApiError(400, 'Invalid content data provided');
+  }
+
+  // Handle uploaded images
+  if (files) {
+    if (files['director_image']) {
+      content.DIRECTOR_MESSAGE = {
+        ...(content.DIRECTOR_MESSAGE || {}),
+        image: `/uploads/images/${files['director_image'][0].filename}`
+      };
+    }
+    if (files['principal_image']) {
+      content.PRINCIPAL_MESSAGE = {
+        ...(content.PRINCIPAL_MESSAGE || {}),
+        image: `/uploads/images/${files['principal_image'][0].filename}`
+      };
+    }
+    if (files['registrar_image']) {
+      content.REGISTRAR_MESSAGE = {
+        ...(content.REGISTRAR_MESSAGE || {}),
+        image: `/uploads/images/${files['registrar_image'][0].filename}`
+      };
+    }
   }
 
   const allowedKeys = ['ABOUT_MILESTONES', 'DIRECTOR_MESSAGE', 'PRINCIPAL_MESSAGE', 'REGISTRAR_MESSAGE'];

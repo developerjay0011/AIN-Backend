@@ -16,6 +16,8 @@ export const initialAboutSettings = [
     { 
         key_name: 'DIRECTOR_MESSAGE', 
         value: JSON.stringify({
+            name: 'Brig Ajit Kumar Borah, VSM (Retd)',
+            image: '/uploads/images/director.jpeg',
             quote: '"Excellence in nursing is not merely a goal — it is a commitment to serve with dedication, devotion and diligence. At AIN, we nurture this commitment in every student."',
             body: 'It is with great pride that we continue to build on the legacy of the Army Institute of Nursing. Our institute stands as a beacon of quality nursing education in Northeast India, committed to producing compassionate and competent healthcare professionals who serve the nation.',
         }), 
@@ -26,6 +28,8 @@ export const initialAboutSettings = [
     { 
         key_name: 'PRINCIPAL_MESSAGE', 
         value: JSON.stringify({
+            name: 'Prof. Kabita Baishya',
+            image: '/uploads/images/principal.jpeg',
             quote: '"Our goal is to shape nurses who are not just clinically competent but are equipped with moral values and a spirit of selfless service."',
             body: 'The Army Institute of Nursing is dedicated to academic excellence and holistic nursing education. We integrate rigorous theory with extensive clinical practice, ensuring our graduates are well-prepared for the challenges of modern healthcare, both in military and civilian settings.',
         }), 
@@ -36,6 +40,8 @@ export const initialAboutSettings = [
     { 
         key_name: 'REGISTRAR_MESSAGE', 
         value: JSON.stringify({
+            name: 'Col Jyoti Prasad Saikia (Retd)',
+            image: '/uploads/images/registrar.jpeg',
             quote: '"Administration at AIN is built on transparency, discipline, and unwavering support for our students\' academic journey."',
             body: 'Our administrative systems are designed to provide seamless support to students and faculty alike. From admissions to examinations, we ensure every process is carried out with efficiency and integrity, in line with INC and university guidelines.',
         }), 

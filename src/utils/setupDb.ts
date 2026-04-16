@@ -17,7 +17,9 @@ const setupDatabase = async () => {
       'aqars',
       'admins',
       'quality_metrics',
-      'settings'
+      'settings',
+      'admission_inquiries',
+      'contact_inquiries'
     ];
 
     for (const table of tables) {
@@ -140,6 +142,29 @@ const setupDatabase = async () => {
         label VARCHAR(255),
         group_name VARCHAR(100),
         type VARCHAR(50) DEFAULT 'text',
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );`,
+      `CREATE TABLE IF NOT EXISTS admission_inquiries (
+        id VARCHAR(255) PRIMARY KEY,
+        studentName VARCHAR(255) NOT NULL,
+        parentName VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(20) NOT NULL,
+        grade VARCHAR(100) NOT NULL,
+        message TEXT,
+        status VARCHAR(50) DEFAULT 'Pending',
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );`,
+      `CREATE TABLE IF NOT EXISTS contact_inquiries (
+        id VARCHAR(255) PRIMARY KEY,
+        fullName VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(20),
+        subject VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        status VARCHAR(50) DEFAULT 'New',
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );`
     ];

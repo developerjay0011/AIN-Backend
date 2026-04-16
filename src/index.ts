@@ -15,6 +15,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import aboutRoutes from './routes/aboutRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import inquiryRoutes from './routes/inquiryRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
 import path from 'path';
@@ -75,6 +76,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/inquiries', inquiryRoutes);
 
 // Apply Auth Middleware to all subsequent API routes
 app.use('/api', authMiddleware);

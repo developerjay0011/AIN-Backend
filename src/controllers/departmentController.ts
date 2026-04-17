@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { Request, Response } from 'express';
+import { sanitizeString } from '../utils/sanitize.js';
 
 // const departments = [
 //   {
@@ -240,11 +241,17 @@ export const getDepartments = async (req: Request, res: Response): Promise<void>
 export const updateDepartment = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, shortName, overview, faculty, clinicalHours } = req.body;
+    const name = sanitizeString(req.body.name);
+    const shortName = sanitizeString(req.body.shortName);
+    const overview = sanitizeString(req.body.overview);
+    const faculty = req.body.faculty;
+    const clinicalHours = sanitizeString(req.body.clinicalHours);
     let { areas } = req.body;
 
     if (Array.isArray(areas)) {
-      areas = JSON.stringify(areas);
+      areas = JSON.stringify(areas.map(a => sanitizeString(a)));
+    } else if (typeof areas === 'string') {
+      areas = sanitizeString(areas);
     }
 
     await pool.query(

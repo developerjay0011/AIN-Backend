@@ -38,14 +38,14 @@ export const seedEvents = async () => {
     console.log('🖼️ Seeding Events & Gallery...');
     for (const [id, name, desc, date, start, end, loc, tag, high] of events) {
         await pool.query(
-            'INSERT OR REPLACE INTO gallery_events (id, name, description, date, startTime, endTime, location, mainTag, highlights) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'REPLACE INTO gallery_events (id, name, description, date, startTime, endTime, location, mainTag, highlights) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [id, name, desc, date, start, end, loc, tag, high]
         );
     }
 
     for (const [id, eventId, type, url, name] of media) {
         await pool.query(
-            'INSERT OR REPLACE INTO gallery_media (id, eventId, type, url, name) VALUES (?, ?, ?, ?, ?)',
+            'REPLACE INTO gallery_media (id, eventId, type, url, name) VALUES (?, ?, ?, ?, ?)',
             [id, eventId, type, url, name]
         );
     }

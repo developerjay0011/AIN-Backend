@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import pool from '../config/db.js';
+import { sanitizeString } from '../utils/sanitize.js';
+import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
@@ -9,7 +10,8 @@ const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextF
 };
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+  const username = sanitizeString(req.body.username);
+  const { password } = req.body;
 
   if (!username || !password) {
     throw new ApiError(400, 'Username and password are required');
@@ -22,10 +24,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(401, 'Invalid credentials');
   }
 
-  const jwtSecret = process.env.JWT_SECRET || 'ain_institutional_portal_secret_2026';
-  
-  // Non-expiring token as requested (omitting expiresIn)
-  const token = jwt.sign({ id: admin.id, username: admin.username }, jwtSecret);
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) throw new Error('JWT_SECRET environment variable is not set');
+
+  // Token expires in 7 days for security
+  const token = jwt.sign({ id: admin.id, username: admin.username }, jwtSecret, { expiresIn: '7d' });
 
   res.json(ApiResponse.success({
     token,

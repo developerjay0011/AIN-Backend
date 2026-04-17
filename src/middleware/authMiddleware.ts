@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { ApiError } from '../utils/ApiResponse.js';
+import { Request, Response, NextFunction } from 'express';
 
 // Routes that require authentication even for GET requests
 const PROTECTED_GET_PATHS = [
@@ -30,7 +30,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   }
 
   const token = authHeader.split(' ')[1];
-  const jwtSecret = process.env.JWT_SECRET || 'ain_institutional_portal_secret_2026';
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) throw new Error('JWT_SECRET environment variable is not set');
 
   try {
     const decoded = jwt.verify(token, jwtSecret);

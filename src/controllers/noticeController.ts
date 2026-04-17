@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls } from '../utils/urlHelper.js';
+import { sanitizeString, sanitizeObject } from '../utils/sanitize.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -19,7 +20,7 @@ export const getAllNotices = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const handleNoticePost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, title, date, type, description, critical, links } = req.body;
+  const { id, title, date, type, description, critical, links } = sanitizeObject(req.body);
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
   
   if (id === '0' || !id || id === 0 || id === 'null') {
@@ -38,7 +39,7 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
       const linksArray = typeof links === 'string' ? JSON.parse(links) : links;
       for (const link of linksArray) {
           const linkId = `LNK-${Date.now()}${Math.floor(Math.random() * 100)}`;
-          await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, link.label, link.url]);
+          await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, sanitizeString(link.label), sanitizeString(link.url)]);
       }
     }
 

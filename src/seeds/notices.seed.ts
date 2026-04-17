@@ -55,14 +55,14 @@ export const seedNotices = async () => {
     console.log('📢 Seeding Notices...');
     for (const [id, title, desc, date, type, crit, img] of notices) {
         await pool.query(
-            'INSERT OR REPLACE INTO notices (id, title, description, date, type, critical, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'REPLACE INTO notices (id, title, description, date, type, critical, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [id, title, desc, date, type, crit, img]
         );
     }
 
     for (const [id, noticeId, label, url] of links) {
         await pool.query(
-            'INSERT OR REPLACE INTO notice_links (id, noticeId, label, url) VALUES (?, ?, ?, ?)',
+            'REPLACE INTO notice_links (id, noticeId, label, url) VALUES (?, ?, ?, ?)',
             [id, noticeId, label, url]
         );
     }

@@ -19,7 +19,8 @@ const setupDatabase = async () => {
       'quality_metrics',
       'settings',
       'admission_inquiries',
-      'contact_inquiries'
+      'contact_inquiries',
+      'alumni_milestones'
     ];
 
     for (const table of tables) {
@@ -29,14 +30,16 @@ const setupDatabase = async () => {
     const createTablesQueries = [
       `CREATE TABLE IF NOT EXISTS hero_slides (
         id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) DEFAULT '',
+        subtitle VARCHAR(255) DEFAULT '',
         imageUrl TEXT NOT NULL,
         link VARCHAR(255),
         \`order\` INT DEFAULT 0,
         isActive BOOLEAN DEFAULT 1,
-        tag VARCHAR(100),
+        tag VARCHAR(100) DEFAULT 'main',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS achievements (
         id VARCHAR(255) PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
@@ -44,8 +47,8 @@ const setupDatabase = async () => {
         category VARCHAR(100),
         description TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS gallery_events (
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -57,8 +60,8 @@ const setupDatabase = async () => {
         location VARCHAR(255),
         mainTag VARCHAR(100),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS gallery_media (
         id VARCHAR(255) PRIMARY KEY,
         eventId VARCHAR(255),
@@ -66,7 +69,7 @@ const setupDatabase = async () => {
         url TEXT NOT NULL,
         name VARCHAR(255),
         FOREIGN KEY (eventId) REFERENCES gallery_events(id) ON DELETE CASCADE
-      );`,
+      )`,
       `CREATE TABLE IF NOT EXISTS notices (
         id VARCHAR(255) PRIMARY KEY,
         title VARCHAR(500) NOT NULL,
@@ -76,15 +79,15 @@ const setupDatabase = async () => {
         critical BOOLEAN DEFAULT 0,
         imageUrl TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS notice_links (
         id VARCHAR(255) PRIMARY KEY,
         noticeId VARCHAR(255),
         label VARCHAR(255),
         url TEXT,
         FOREIGN KEY (noticeId) REFERENCES notices(id) ON DELETE CASCADE
-      );`,
+      )`,
       `CREATE TABLE IF NOT EXISTS staff (
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -96,8 +99,8 @@ const setupDatabase = async () => {
         specialization VARCHAR(255),
         department VARCHAR(255),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS toppers (
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -105,8 +108,8 @@ const setupDatabase = async () => {
         rank VARCHAR(255),
         imageUrl TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS aqars (
         id VARCHAR(255) PRIMARY KEY,
         year VARCHAR(20) NOT NULL,
@@ -117,14 +120,14 @@ const setupDatabase = async () => {
         documentUrl TEXT,
         size VARCHAR(50),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS admins (
         id VARCHAR(255) PRIMARY KEY,
         username VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+      )`,
       `CREATE TABLE IF NOT EXISTS quality_metrics (
         id VARCHAR(255) PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
@@ -133,8 +136,8 @@ const setupDatabase = async () => {
         color VARCHAR(255) DEFAULT 'bg-blue-50 text-blue-600',
         sortOrder INT DEFAULT 0,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS settings (
         id VARCHAR(255) PRIMARY KEY,
         key_name VARCHAR(255) UNIQUE NOT NULL,
@@ -142,8 +145,8 @@ const setupDatabase = async () => {
         label VARCHAR(255),
         group_name VARCHAR(100),
         type VARCHAR(50) DEFAULT 'text',
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS admission_inquiries (
         id VARCHAR(255) PRIMARY KEY,
         studentName VARCHAR(255) NOT NULL,
@@ -154,8 +157,8 @@ const setupDatabase = async () => {
         message TEXT,
         status VARCHAR(50) DEFAULT 'Pending',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
       `CREATE TABLE IF NOT EXISTS contact_inquiries (
         id VARCHAR(255) PRIMARY KEY,
         fullName VARCHAR(255) NOT NULL,
@@ -165,12 +168,31 @@ const setupDatabase = async () => {
         message TEXT NOT NULL,
         status VARCHAR(50) DEFAULT 'New',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS alumni_milestones (
+        id VARCHAR(255) PRIMARY KEY,
+        year VARCHAR(20) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        imageUrl TEXT,
+        sortOrder INT DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS departments (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        overview TEXT,
+        areas TEXT,
+        faculty TEXT,
+        clinicalHours VARCHAR(100),
+        sortOrder INT DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`
     ];
 
-    // Note: SQLite doesn't support ENUM or ON UPDATE CURRENT_TIMESTAMP in simple CREATE TABLE
-    // We stripped them for maximum compatibility.
 
     for (const query of createTablesQueries) {
       await pool.query(query);

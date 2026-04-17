@@ -63,7 +63,7 @@ export const seedHero = async () => {
     console.log('🖼️ Seeding Hero Slides...');
     for (const slide of slides) {
         await pool.query(
-            'INSERT OR REPLACE INTO hero_slides (id, imageUrl, \`order\`, isActive, tag) VALUES (?, ?, ?, ?, ?)',
+            'REPLACE INTO hero_slides (id, imageUrl, `order`, isActive, tag) VALUES (?, ?, ?, ?, ?)',
             [slide.id, slide.imageUrl, slide.order, slide.isActive, slide.tag]
         );
     }

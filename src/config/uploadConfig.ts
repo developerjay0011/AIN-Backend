@@ -26,9 +26,21 @@ const storage = multer.diskStorage({
   }
 });
 
-// Accept all file types — validation is handled at the application level
+// Restricted file types for security
+const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+  const allowedExtensions = /jpeg|jpg|png|gif|webp|pdf|doc|docx|mp4/;
+  const mimetype = allowedExtensions.test(file.mimetype);
+  const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  }
+  cb(new Error('Error: File upload only supports images, documents, and mp4 videos!'), false);
+};
+
 export const upload = multer({
   storage,
+  fileFilter,
   limits: {
     fileSize: 50 * 1024 * 1024 // 50MB limit
   }

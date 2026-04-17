@@ -10,17 +10,18 @@
     "build": "rimraf ./dist && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:setup": "tsx src/utils/setupDb.ts",
-    "db:seed": "tsx src/seeds/runSeeds.ts"
+    "db:seed": "tsx src/seeds/runSeeds.ts",
+    "db:migrate": "tsx src/scripts/migrate.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^12.8.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.5.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
@@ -29,7 +30,6 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",

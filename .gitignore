@@ -134,3 +134,13 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# User uploads (should be on persistent storage / CDN in production)
+uploads/
+
+# Local SQLite database files
+*.db
+*.sqlite
+
+# Dev scratch files
+src/scratch/

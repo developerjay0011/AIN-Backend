@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { sanitizeString } from '../utils/sanitize.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
@@ -9,7 +10,14 @@ const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextF
 // --- Admission Inquiries ---
 
 export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Response) => {
-    const { studentName, parentName, email, phone, grade, message } = req.body;
+    const raw = req.body;
+
+    const studentName = sanitizeString(raw.studentName);
+    const parentName  = sanitizeString(raw.parentName);
+    const email       = sanitizeString(raw.email);
+    const phone       = sanitizeString(raw.phone);
+    const grade       = sanitizeString(raw.grade);
+    const message     = sanitizeString(raw.message ?? '');
 
     if (!studentName || !parentName || !email || !phone || !grade) {
         throw new ApiError(400, 'Student Name, Parent Name, Email, Phone, and Grade are required');
@@ -65,7 +73,13 @@ export const deleteAdmissionInquiry = asyncHandler(async (req: Request, res: Res
 // --- Contact Inquiries ---
 
 export const createContactInquiry = asyncHandler(async (req: Request, res: Response) => {
-    const { fullName, email, phone, subject, message } = req.body;
+    const raw = req.body;
+
+    const fullName = sanitizeString(raw.fullName);
+    const email   = sanitizeString(raw.email);
+    const phone   = sanitizeString(raw.phone ?? '');
+    const subject = sanitizeString(raw.subject);
+    const message = sanitizeString(raw.message);
 
     if (!fullName || !email || !subject || !message) {
         throw new ApiError(400, 'Full Name, Email, Subject, and Message are required');

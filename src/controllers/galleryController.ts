@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
-import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls } from '../utils/urlHelper.js';
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { sanitizeString, sanitizeObject } from '../utils/sanitize.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -9,7 +10,7 @@ const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextF
 
 export const getAllEvents = asyncHandler(async (req: Request, res: Response) => {
   const [events] = await pool.query('SELECT * FROM gallery_events ORDER BY date DESC');
-  
+
   for (let event of events as any[]) {
     const [media] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE eventId = ?', [event.id]);
     event.media = media;
@@ -24,23 +25,23 @@ export const getAllEvents = asyncHandler(async (req: Request, res: Response) => 
       event.highlights = [];
     }
   }
-  
+
   res.json(ApiResponse.success(formatDataUrls(events), 'Events fetched successfully'));
 });
 
 export const handleGalleryPost = asyncHandler(async (req: Request, res: Response) => {
-        const { id, name, description, date, startTime, endTime, location, mainTag, media, highlights } = req.body;
-        
-        if (id === '0' || !id || id === 0) {
-            if (!name) {
-                throw new ApiError(400, 'Event name is required');
-            }
+  const { id, name, description, date, startTime, endTime, location, mainTag, media, highlights } = sanitizeObject(req.body);
 
-            const eventId = `EVT-${Date.now()}`;
-            await pool.query(
-                'INSERT INTO gallery_events (id, name, description, date, startTime, endTime, location, mainTag, highlights) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [eventId, name, description, date, startTime, endTime, location, mainTag, highlights]
-            );
+  if (id === '0' || !id || id === 0) {
+    if (!name) {
+      throw new ApiError(400, 'Event name is required');
+    }
+
+    const eventId = `EVT-${Date.now()}`;
+    await pool.query(
+      'INSERT INTO gallery_events (id, name, description, date, startTime, endTime, location, mainTag, highlights) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [eventId, name, description, date, startTime, endTime, location, mainTag, highlights]
+    );
 
     if (req.files && Array.isArray(req.files)) {
       for (const file of req.files) {
@@ -50,7 +51,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         const type = file.mimetype.startsWith('video/') ? 'video' : 'photo';
         await pool.query(
           'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-          [mediaId, eventId, type, url, file.originalname]
+          [mediaId, eventId, type, url, sanitizeString(file.originalname)]
         );
       }
     }
@@ -62,7 +63,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
           const mediaId = `MED-${Date.now()}`;
           await pool.query(
             'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-            [mediaId, eventId, m.type || 'photo', m.url, m.name]
+            [mediaId, eventId, m.type || 'photo', m.url, sanitizeString(m.name)]
           );
         }
       }
@@ -78,8 +79,8 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
       throw new ApiError(404, 'Event not found');
     }
 
-        await pool.query(
-            `UPDATE gallery_events SET 
+    await pool.query(
+      `UPDATE gallery_events SET 
         name = COALESCE(?, name), 
         description = COALESCE(?, description), 
         date = COALESCE(?, date), 
@@ -90,8 +91,8 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         highlights = COALESCE(?, highlights),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?`,
-            [name, description, date, startTime, endTime, location, mainTag, highlights, id]
-        );
+      [name, description, date, startTime, endTime, location, mainTag, highlights, id]
+    );
 
     // Delete media items that were removed in the form
     const { deleteMediaIds } = req.body;
@@ -113,7 +114,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         const type = file.mimetype.startsWith('video/') ? 'video' : 'photo';
         await pool.query(
           'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-          [mediaId, id, type, url, file.originalname]
+          [mediaId, id, type, url, sanitizeString(file.originalname)]
         );
       }
     }
@@ -128,10 +129,10 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
 export const deleteEvent = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const [result] = await pool.query('DELETE FROM gallery_events WHERE id = ?', [id]);
-  
+
   if ((result as any).affectedRows === 0) {
     throw new ApiError(404, 'Event not found');
   }
-  
+
   res.json(ApiResponse.success(null, 'Event deleted successfully'));
 });

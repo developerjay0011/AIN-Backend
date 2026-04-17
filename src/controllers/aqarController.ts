@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { sanitizeObject } from '../utils/sanitize.js';
 import { formatDataUrls } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
@@ -9,7 +10,7 @@ const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextF
 
 export const getAllAqars = asyncHandler(async (req: Request, res: Response) => {
   const [aqars] = await pool.query('SELECT * FROM aqars ORDER BY date DESC');
-  
+
   // Also fetch highlights
   const [rows]: any = await pool.query("SELECT title, value FROM quality_metrics");
 
@@ -33,7 +34,7 @@ export const getAllAqars = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const handleAqarPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, year, title, description, status, date } = req.body;
+  const { id, year, title, description, status, date } = sanitizeObject(req.body);
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
   let documentUrl = '';
@@ -110,7 +111,7 @@ export const getInstitutionalHighlights = asyncHandler(async (req: Request, res:
 });
 
 export const updateInstitutionalHighlights = asyncHandler(async (req: Request, res: Response) => {
-  const { academicExcellence, complianceRate, researchGrowth } = req.body;
+  const { academicExcellence, complianceRate, researchGrowth } = sanitizeObject(req.body);
 
   const updates = [
     { title: 'Academic Excellence', value: academicExcellence },

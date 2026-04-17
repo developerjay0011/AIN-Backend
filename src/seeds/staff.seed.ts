@@ -23,7 +23,7 @@ export const seedStaff = async () => {
     console.log('🧑‍🏫 Seeding Staff...');
     for (const [id, name, role, type, image, qual, exp, spec, dept] of records) {
         await pool.query(
-            `INSERT OR REPLACE INTO staff 
+            `REPLACE INTO staff 
             (id, name, role, type, image, qualification, experience, specialization, department) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [id, name, role, type, image, qual, exp, spec, dept]

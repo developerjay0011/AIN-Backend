@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
+import pool from '../config/db.js';
+import { sanitizeString } from '../utils/sanitize.js';
+import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
@@ -15,7 +16,7 @@ const PROTECTED_ADMIN_USERNAME = 'admin';
  */
 export const getAllAdmins = asyncHandler(async (req: Request, res: Response) => {
   const [admins] = await pool.query(
-    'SELECT id, username, createdAt FROM admins WHERE username != ? ORDER BY createdAt DESC', 
+    'SELECT id, username, createdAt FROM admins WHERE username != ? ORDER BY createdAt DESC',
     [PROTECTED_ADMIN_USERNAME]
   );
   res.json(ApiResponse.success(admins, 'Administrators retrieved successfully'));
@@ -26,7 +27,8 @@ export const getAllAdmins = asyncHandler(async (req: Request, res: Response) => 
  * POST /api/admins
  */
 export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+  const username = sanitizeString(req.body.username);
+  const { password } = req.body;
 
   if (!username || !password) {
     throw new ApiError(400, 'Username and password are required');
@@ -55,7 +57,8 @@ export const createAdmin = asyncHandler(async (req: Request, res: Response) => {
  */
 export const updateAdmin = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { username, password } = req.body;
+  const username = sanitizeString(req.body.username);
+  const { password } = req.body;
 
   if (!username) {
     throw new ApiError(400, 'Username is required');

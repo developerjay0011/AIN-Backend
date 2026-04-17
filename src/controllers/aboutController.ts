@@ -1,4 +1,5 @@
 import pool from '../config/db.js';
+import { sanitizeString } from '../utils/sanitize.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
@@ -47,7 +48,6 @@ export const updateAboutContent = asyncHandler(async (req: Request, res: Respons
     throw new ApiError(400, 'Invalid content data provided');
   }
 
-  // Handle uploaded images
   if (files) {
     if (files['director_image']) {
       content.DIRECTOR_MESSAGE = {
@@ -69,8 +69,21 @@ export const updateAboutContent = asyncHandler(async (req: Request, res: Respons
     }
   }
 
+  // Deep sanitize the content since it contains nested objects for settings
+  const sanitizeDeep = (val: any): any => {
+    if (Array.isArray(val)) return val.map(sanitizeDeep);
+    if (val && typeof val === 'object') {
+      const result: any = {};
+      for (const k of Object.keys(val)) result[k] = sanitizeDeep(val[k]);
+      return result;
+    }
+    return typeof val === 'string' ? sanitizeString(val) : val;
+  };
+
+  const sanitizedContent = sanitizeDeep(content);
+
   const allowedKeys = ['ABOUT_MILESTONES', 'DIRECTOR_MESSAGE', 'PRINCIPAL_MESSAGE', 'REGISTRAR_MESSAGE'];
-  const entries = Object.entries(content);
+  const entries = Object.entries(sanitizedContent);
 
   for (const [key, value] of entries) {
     if (!allowedKeys.includes(key)) continue;

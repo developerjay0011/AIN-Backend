@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { rateLimit } from 'express-rate-limit';
 import dotenv from 'dotenv';
 import os from 'os';
 import heroRoutes from './routes/heroRoutes.js';
@@ -17,6 +18,7 @@ import aboutRoutes from './routes/aboutRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import inquiryRoutes from './routes/inquiryRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
+import alumniRoutes from './routes/alumniRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
 import path from 'path';
@@ -58,6 +60,26 @@ app.use(cors({
 app.use(morgan('dev'));
 app.use(express.json());
 
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+
+const inquiryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // restrict public inquiry forms to 5 requests per 15 mins to prevent spam
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many inquiry submissions from this IP, please try again after 15 minutes'
+});
+
+app.use('/api/', apiLimiter);
+app.use('/api/inquiries', inquiryLimiter);
+
 // Static Files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -92,6 +114,7 @@ app.use('/api/aqars', aqarRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/about', aboutRoutes);
+app.use('/api/alumni', alumniRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // Error Handling

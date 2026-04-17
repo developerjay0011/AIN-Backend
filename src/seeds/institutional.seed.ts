@@ -37,28 +37,28 @@ export const seedInstitutional = async () => {
     
     for (const [id, n, r, img, tag] of toppers) {
         await pool.query(
-            'INSERT OR REPLACE INTO toppers (id, name, rank, imageUrl, rankTag) VALUES (?, ?, ?, ?, ?)',
+            'REPLACE INTO toppers (id, name, rank, imageUrl, rankTag) VALUES (?, ?, ?, ?, ?)',
             [id, n, r, img, tag]
         );
     }
 
     for (const [id, t, d, c, ds] of milestones) {
         await pool.query(
-            'INSERT OR REPLACE INTO achievements (id, title, date, category, description) VALUES (?, ?, ?, ?, ?)',
+            'REPLACE INTO achievements (id, title, date, category, description) VALUES (?, ?, ?, ?, ?)',
             [id, t, d, c, ds]
         );
     }
 
     for (const [id, y, t, d, s, dt, u, sz] of aqars) {
         await pool.query(
-            'INSERT OR REPLACE INTO aqars (id, year, title, description, status, date, documentUrl, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'REPLACE INTO aqars (id, year, title, description, status, date, documentUrl, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [id, y, t, d, s, dt, u, sz]
         );
     }
 
     for (const [id, i, t, v, c, so] of metrics) {
         await pool.query(
-            'INSERT OR REPLACE INTO quality_metrics (id, icon, title, value, color, sortOrder) VALUES (?, ?, ?, ?, ?, ?)',
+            'REPLACE INTO quality_metrics (id, icon, title, value, color, sortOrder) VALUES (?, ?, ?, ?, ?, ?)',
             [id, i, t, v, c, so]
         );
     }

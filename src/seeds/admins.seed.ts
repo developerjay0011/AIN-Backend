@@ -9,7 +9,7 @@ export const seedAdmins = async () => {
     console.log('👥 Seeding Admins...');
     for (const [id, username, password] of records) {
         await pool.query(
-            'INSERT OR REPLACE INTO admins (id, username, password) VALUES (?, ?, ?)',
+            'REPLACE INTO admins (id, username, password) VALUES (?, ?, ?)',
             [id, username, password]
         );
     }

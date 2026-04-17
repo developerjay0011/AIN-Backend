@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
-import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { sanitizeObject } from '../utils/sanitize.js';
 import { formatDataUrls } from '../utils/urlHelper.js';
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -22,7 +23,7 @@ export const getAllStaff = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const handleStaffPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, name, role, type, qualification, experience, specialization, department } = req.body;
+  const { id, name, role, type, qualification, experience, specialization, department } = sanitizeObject(req.body);
   const image = req.file ? `/uploads/images/${req.file.filename}` : req.body.image;
 
   if (id === '0' || !id || id === 0) {
@@ -59,7 +60,7 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
           department = COALESCE(?, department),
           updatedAt = CURRENT_TIMESTAMP
     `;
-    
+
     const params = [name, role, type, qualification, experience, specialization, department];
 
     if (image !== undefined) {
@@ -80,10 +81,10 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
 export const deleteStaffMember = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const [result] = await pool.query('DELETE FROM staff WHERE id = ?', [id]);
-  
+
   if ((result as any).affectedRows === 0) {
     throw new ApiError(404, 'Staff member not found');
   }
-  
+
   res.json(ApiResponse.success(null, 'Staff member deleted successfully'));
 });

@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
-import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { sanitizeObject } from '../utils/sanitize.js';
 import { formatDataUrls } from '../utils/urlHelper.js';
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -18,13 +19,13 @@ export const getAllHeroSlides = asyncHandler(async (req: Request, res: Response)
   }
 
   query += ' ORDER BY `order` ASC, createdAt DESC';
-  
+
   const [rows] = await pool.query(query, params);
   res.json(ApiResponse.success(formatDataUrls(rows), 'Hero slides fetched successfully'));
 });
 
 export const handleHeroPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, order, isActive, tag } = req.body;
+  const { id, order, isActive, tag } = sanitizeObject(req.body);
   const imageUrl = req.file ? `/uploads/images/${req.file.filename}` : req.body.imageUrl;
 
   if (id === '0' || !id || id === 0) {
@@ -83,10 +84,10 @@ export const handleHeroPost = asyncHandler(async (req: Request, res: Response) =
 export const deleteHeroSlide = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const [result] = await pool.query('DELETE FROM hero_slides WHERE id = ?', [id]);
-  
+
   if ((result as any).affectedRows === 0) {
     throw new ApiError(404, 'Hero slide not found');
   }
-  
+
   res.json(ApiResponse.success(null, 'Hero slide deleted successfully'));
 });

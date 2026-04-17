@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
-import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
-
+import { sanitizeString } from '../utils/sanitize.js';
 import { formatDataUrls } from '../utils/urlHelper.js';
+import { Request, Response, NextFunction } from 'express';
+import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -10,7 +10,7 @@ const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextF
 
 export const getAllSettings = asyncHandler(async (req: Request, res: Response) => {
   const [rows] = await pool.query('SELECT * FROM settings ORDER BY group_name, label');
-  
+
   // Format settings into a key-value object grouped by section if needed, 
   // or just return as a flat list. For complexity, we'll return both.
   const settingsMap: Record<string, any> = {};
@@ -42,8 +42,21 @@ export const updateSettings = asyncHandler(async (req: Request, res: Response) =
     throw new ApiError(400, 'Invalid settings data provided');
   }
 
-  const entries = Object.entries(settings);
-  
+  // Deep sanitize the settings since some are JSON
+  const sanitizeDeep = (val: any): any => {
+    if (Array.isArray(val)) return val.map(sanitizeDeep);
+    if (val && typeof val === 'object') {
+      const result: any = {};
+      for (const k of Object.keys(val)) result[k] = sanitizeDeep(val[k]);
+      return result;
+    }
+    return typeof val === 'string' ? sanitizeString(val) : val;
+  };
+
+  const sanitizedSettings = sanitizeDeep(settings);
+
+  const entries = Object.entries(sanitizedSettings);
+
   for (const [key, value] of entries) {
     const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
     await pool.query(
@@ -67,7 +80,7 @@ export const uploadLogo = asyncHandler(async (req: Request, res: Response) => {
   if (key_name) {
     // Fetch current setting to see if it's a list or simple value
     const [rows]: any = await pool.query('SELECT * FROM settings WHERE key_name = ?', [key_name]);
-    
+
     if (rows.length > 0) {
       const setting = rows[0];
       let newValue: any = fileUrl;

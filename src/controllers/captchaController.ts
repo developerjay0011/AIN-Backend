@@ -29,40 +29,50 @@ export const generateCaptcha = (req: Request, res: Response) => {
 
   const token = jwt.sign({ captcha: text }, jwtSecret, { expiresIn: '5m' });
 
-  // Generate SVG with noise
+  // Generate SVG with security noise
   let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
 
   // Background
   svg += `<rect width="100%" height="100%" fill="#f3f4f6" />`;
 
-  // Random noise lines
-  for (let i = 0; i < 5; i++) {
-    const x1 = Math.random() * width;
+  // Bezier Noise Curves (Harder for OCR than straight lines)
+  for (let i = 0; i < 3; i++) {
     const y1 = Math.random() * height;
-    const x2 = Math.random() * width;
     const y2 = Math.random() * height;
-    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0c0c0cff" stroke-width="1" />`;
+    const cy1 = Math.random() * height;
+    const cy2 = Math.random() * height;
+    svg += `<path d="M 0 ${y1} C ${width / 3} ${cy1}, ${2 * width / 3} ${cy2}, ${width} ${y2}" stroke="#cbd5e1" stroke-width="1.5" fill="none" opacity="0.5" />`;
   }
 
-  // Text with random rotation and positioning
+  // Text with balanced distortion
   const letters = text.split('');
   const charWidth = width / (letters.length + 0.5);
+
   letters.forEach((char, i) => {
     const x = (i + 0.75) * charWidth;
     const y = 32 + (Math.random() * 6 - 3);
-    const rotation = Math.random() * 20 - 10;
-    svg += `<text x="${x}" y="${y}" font-family="Arial, sans-serif" font-weight="bold" font-size="20" fill="#1e293b" transform="rotate(${rotation}, ${x}, ${y})" text-anchor="middle">${char}</text>`;
+    const rotation = Math.random() * 24 - 12; // Moderate rotation
+    const scale = 0.9 + Math.random() * 0.2; // Moderate scaling
+
+    svg += `<text x="${x}" y="${y}" 
+      font-family="'Times New Roman', serif" 
+      font-weight="900" 
+      font-size="24" 
+      fill="#1e293b" 
+      transform="rotate(${rotation}, ${x}, ${y}) scale(${scale})" 
+      text-anchor="middle"
+    >${char}</text>`;
   });
 
-
-  // Random noise dots
-  for (let i = 0; i < 30; i++) {
+  // Noise grains
+  for (let i = 0; i < 40; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    svg += `<circle cx="${x}" cy="${y}" r="1" fill="#94a3b8" />`;
+    svg += `<circle cx="${x}" cy="${y}" r="1" fill="#cbd5e1" opacity="0.6" />`;
   }
 
   svg += `</svg>`;
+
 
   res.json(ApiResponse.success({
     svg: Buffer.from(svg).toString('base64'), // Base64 for easy transport

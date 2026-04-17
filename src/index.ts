@@ -34,8 +34,22 @@ const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" } // Allow images to be loaded cross-origin
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"], // unsafe-inline for dev/specific animations if needed
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:", "*"], // Allow data/blob for CAPTCHA and * for dynamic uploads
+      connectSrc: ["'self'", "*"],
+      fontSrc: ["'self'", "https:", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
 }));
+
 app.use(cors({
   origin: (origin, callback) => {
     const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';

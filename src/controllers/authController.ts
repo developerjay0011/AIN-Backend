@@ -48,6 +48,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const admin = (admins as any[])[0];
 
   if (!admin || !(await bcrypt.compare(password, admin.password))) {
+    console.warn(`🚨 FAILED LOGIN ATTEMPT: User "${username}" from IP ${req.ip}`);
     throw new ApiError(401, 'Invalid credentials');
   }
 

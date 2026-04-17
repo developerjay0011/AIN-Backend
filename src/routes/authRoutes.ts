@@ -1,9 +1,11 @@
 import { Router } from 'express';
-import authController from '../controllers/authController.js';
+import { login, logout } from '../controllers/authController.js';
+import { generateCaptcha } from '../controllers/captchaController.js';
 
 const router = Router();
 
-router.post('/login', authController.login);
-router.post('/logout', authController.logout);
+router.post('/login', login);
+router.post('/logout', logout);
+router.get('/captcha', generateCaptcha);
 
 export default router;

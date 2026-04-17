@@ -19,8 +19,12 @@ export function sanitizeString(value: unknown): string {
     if (typeof value !== 'string') return value as any;
     return value
         .trim()
+        .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
 }
 
 /**

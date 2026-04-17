@@ -2,6 +2,30 @@ import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { sanitizeString } from '../utils/sanitize.js';
+import jwt from 'jsonwebtoken';
+
+/**
+ * Helper to verify CAPTCHA token and answer
+ */
+const verifyCaptcha = (token: string, answer: string) => {
+    if (!token || !answer) {
+        throw new ApiError(400, 'CAPTCHA verification is required');
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) throw new Error('JWT_SECRET not set');
+
+    try {
+        const decoded = jwt.verify(token, jwtSecret) as { captcha: string };
+        if (decoded.captcha.toUpperCase() !== answer.toUpperCase()) {
+            throw new ApiError(400, 'Incorrect CAPTCHA answer. Please try again.');
+        }
+    } catch (error: any) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(401, 'CAPTCHA expired or invalid. Please refresh.');
+    }
+};
+
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
@@ -22,6 +46,10 @@ export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Res
     if (!studentName || !parentName || !email || !phone || !grade) {
         throw new ApiError(400, 'Student Name, Parent Name, Email, Phone, and Grade are required');
     }
+
+    // Verify CAPTCHA
+    verifyCaptcha(raw.captchaToken, raw.captchaAnswer);
+
 
     const id = `ADM-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const query = `
@@ -84,6 +112,10 @@ export const createContactInquiry = asyncHandler(async (req: Request, res: Respo
     if (!fullName || !email || !subject || !message) {
         throw new ApiError(400, 'Full Name, Email, Subject, and Message are required');
     }
+
+    // Verify CAPTCHA
+    verifyCaptcha(raw.captchaToken, raw.captchaAnswer);
+
 
     const id = `CON-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const query = `

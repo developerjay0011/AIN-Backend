@@ -18,18 +18,15 @@ export const errorHandler = (
     message = 'Internal Server Error';
   }
 
-  // Log the error for internal tracking (could use a logger like winston)
-  console.error(`[ERROR] ${req.method} ${req.url}: ${message}`);
-  if (err.stack && process.env.NODE_ENV === 'development') {
-    console.error(err.stack);
-  }
+  const isDev = process.env.NODE_ENV === 'development';
 
   res.status(statusCode).json({
     success: false,
     message,
     errors: err.errors || [],
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    ...(isDev && { stack: err.stack })
   });
+
 };
 
 /**

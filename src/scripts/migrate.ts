@@ -10,7 +10,6 @@ const migrate = async () => {
         CREATE TABLE IF NOT EXISTS hero_slides (
           id VARCHAR(255) PRIMARY KEY,
           imageUrl TEXT NOT NULL,
-          link VARCHAR(255),
           \`order\` INT DEFAULT 0,
           isActive BOOLEAN DEFAULT 1,
           tag VARCHAR(100) DEFAULT 'main',
@@ -200,8 +199,6 @@ const migrate = async () => {
       { table: 'departments', column: 'sortOrder', query: 'ALTER TABLE departments ADD COLUMN sortOrder INT DEFAULT 0 AFTER clinicalHours' },
       
       // hero_slides table
-      { table: 'hero_slides', column: 'title', query: 'ALTER TABLE hero_slides ADD COLUMN title VARCHAR(255) DEFAULT \'\' AFTER id' },
-      { table: 'hero_slides', column: 'subtitle', query: 'ALTER TABLE hero_slides ADD COLUMN subtitle VARCHAR(255) DEFAULT \'\' AFTER title' },
       { table: 'hero_slides', column: 'tag', query: 'ALTER TABLE hero_slides ADD COLUMN tag VARCHAR(100) DEFAULT \'main\' AFTER isActive' },
     ];
 
@@ -215,10 +212,24 @@ const migrate = async () => {
           console.log(`✅ Column '${m.column}' added.`);
         }
       } catch (colErr: any) {
-        // Ignore if already exists (MySQL 1060 error) or other common issues
         if (colErr.errno !== 1060) {
           console.warn(`⚠️  Could not add column ${m.column} to ${m.table}:`, colErr.message);
         }
+      }
+    }
+
+    // Explicitly remove title, subtitle, and link from hero_slides as requested
+    const columnsToRemove = ['title', 'subtitle', 'link'];
+    for (const col of columnsToRemove) {
+      try {
+        const [exists]: any = await pool.query(`SHOW COLUMNS FROM hero_slides LIKE ?`, [col]);
+        if (exists.length > 0) {
+          console.log(`⏳ Removing column '${col}' from 'hero_slides'...`);
+          await pool.query(`ALTER TABLE hero_slides DROP COLUMN ${col}`);
+          console.log(`✅ Column '${col}' removed.`);
+        }
+      } catch (err: any) {
+        console.warn(`⚠️  Could not remove column ${col}:`, err.message);
       }
     }
 

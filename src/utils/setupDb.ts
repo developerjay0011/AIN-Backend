@@ -30,10 +30,7 @@ const setupDatabase = async () => {
     const createTablesQueries = [
       `CREATE TABLE IF NOT EXISTS hero_slides (
         id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255) DEFAULT '',
-        subtitle VARCHAR(255) DEFAULT '',
         imageUrl TEXT NOT NULL,
-        link VARCHAR(255),
         \`order\` INT DEFAULT 0,
         isActive BOOLEAN DEFAULT 1,
         tag VARCHAR(100) DEFAULT 'main',

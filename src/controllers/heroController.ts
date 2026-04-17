@@ -37,8 +37,8 @@ export const handleHeroPost = asyncHandler(async (req: Request, res: Response) =
     const newId = `SLD-${Date.now()}`;
     // We keep 'title' as empty string for DB compatibility (NOT NULL constraint)
     const query = `
-      INSERT INTO hero_slides (id, imageUrl, link, \`order\`, isActive, tag)
-      VALUES (?, ?, '', ?, ?, ?)
+      INSERT INTO hero_slides (id, imageUrl, \`order\`, isActive, tag)
+      VALUES (?, ?, ?, ?, ?)
     `;
 
     await pool.query(query, [

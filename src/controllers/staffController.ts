@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { sanitizeObject } from '../utils/sanitize.js';
-import { formatDataUrls } from '../utils/urlHelper.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
@@ -24,7 +24,7 @@ export const getAllStaff = asyncHandler(async (req: Request, res: Response) => {
 
 export const handleStaffPost = asyncHandler(async (req: Request, res: Response) => {
   const { id, name, role, type, qualification, experience, specialization, department } = sanitizeObject(req.body);
-  const image = req.file ? `/uploads/images/${req.file.filename}` : req.body.image;
+  const image = req.file ? getUploadPath(req.file) : (req.body.image || null);
 
   if (id === '0' || !id || id === 0) {
     // Create Logic
@@ -38,18 +38,28 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await pool.query(query, [newId, name, role, type, image, qualification, experience, specialization, department]);
+    await pool.query(query, [
+      newId,
+      name || null,
+      role || null,
+      type || null,
+      image,
+      qualification || null,
+      experience || null,
+      specialization || null,
+      department || null
+    ]);
 
     const [newMember] = await pool.query('SELECT * FROM staff WHERE id = ?', [newId]);
     return res.status(201).json(ApiResponse.success(formatDataUrls((newMember as any)[0]), 'Staff member created successfully'));
   } else {
     // Update Logic
-    const [existing] = await pool.query('SELECT * FROM staff WHERE id = ?', [id]);
-    if ((existing as any).length === 0) {
+    const [existing]: any = await pool.query('SELECT * FROM staff WHERE id = ?', [id]);
+    if (existing.length === 0) {
       throw new ApiError(404, 'Staff member not found');
     }
 
-    let query = `
+    const query = `
       UPDATE staff 
       SET name = COALESCE(?, name),
           role = COALESCE(?, role),
@@ -58,20 +68,22 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
           experience = COALESCE(?, experience),
           specialization = COALESCE(?, specialization),
           department = COALESCE(?, department),
+          image = COALESCE(?, image),
           updatedAt = CURRENT_TIMESTAMP
+      WHERE id = ?
     `;
 
-    const params = [name, role, type, qualification, experience, specialization, department];
-
-    if (image !== undefined) {
-      query += ', image = ?';
-      params.push(image);
-    }
-
-    query += ' WHERE id = ?';
-    params.push(id);
-
-    await pool.query(query, params);
+    await pool.query(query, [
+      name || null,
+      role || null,
+      type || null,
+      qualification || null,
+      experience || null,
+      specialization || null,
+      department || null,
+      image,
+      id
+    ]);
 
     const [updatedMember] = await pool.query('SELECT * FROM staff WHERE id = ?', [id]);
     return res.json(ApiResponse.success(formatDataUrls((updatedMember as any)[0]), 'Staff member updated successfully'));

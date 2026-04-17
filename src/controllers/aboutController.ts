@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { sanitizeString } from '../utils/sanitize.js';
+import { getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
@@ -52,19 +53,19 @@ export const updateAboutContent = asyncHandler(async (req: Request, res: Respons
     if (files['director_image']) {
       content.DIRECTOR_MESSAGE = {
         ...(content.DIRECTOR_MESSAGE || {}),
-        image: `/uploads/images/${files['director_image'][0].filename}`
+        image: getUploadPath(files['director_image'][0])
       };
     }
     if (files['principal_image']) {
       content.PRINCIPAL_MESSAGE = {
         ...(content.PRINCIPAL_MESSAGE || {}),
-        image: `/uploads/images/${files['principal_image'][0].filename}`
+        image: getUploadPath(files['principal_image'][0])
       };
     }
     if (files['registrar_image']) {
       content.REGISTRAR_MESSAGE = {
         ...(content.REGISTRAR_MESSAGE || {}),
-        image: `/uploads/images/${files['registrar_image'][0].filename}`
+        image: getUploadPath(files['registrar_image'][0])
       };
     }
   }
@@ -83,12 +84,51 @@ export const updateAboutContent = asyncHandler(async (req: Request, res: Respons
   const sanitizedContent = sanitizeDeep(content);
 
   const allowedKeys = ['ABOUT_MILESTONES', 'DIRECTOR_MESSAGE', 'PRINCIPAL_MESSAGE', 'REGISTRAR_MESSAGE'];
+  
+  // Fetch existing settings first to merge correctly (preserving images if omitted)
+  const placeholders = allowedKeys.map(() => '?').join(',');
+  const [existingRows] = await pool.query(`SELECT key_name, value FROM settings WHERE key_name IN (${placeholders})`, allowedKeys);
+  const existingMap: Record<string, any> = {};
+  (existingRows as any[]).forEach(row => {
+    try {
+      existingMap[row.key_name] = JSON.parse(row.value);
+    } catch {
+      existingMap[row.key_name] = row.value;
+    }
+  });
+
   const entries = Object.entries(sanitizedContent);
 
   for (const [key, value] of entries) {
     if (!allowedKeys.includes(key)) continue;
 
-    const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    let finalValue = value;
+
+    // Merge logic for leadership messages to preserve existing images if omitted
+    if (['DIRECTOR_MESSAGE', 'PRINCIPAL_MESSAGE', 'REGISTRAR_MESSAGE'].includes(key)) {
+        const existing = existingMap[key] || {};
+        const incoming = (value as any) || {};
+        
+        // Standardized image update pattern for About settings
+        const fieldMap: Record<string, string> = {
+            'DIRECTOR_MESSAGE': 'director_image',
+            'PRINCIPAL_MESSAGE': 'principal_image',
+            'REGISTRAR_MESSAGE': 'registrar_image'
+        };
+        const fileKey = fieldMap[key];
+        const newImagePath = (files && files[fileKey]) 
+            ? getUploadPath(files[fileKey][0]) 
+            : null;
+
+        finalValue = {
+            ...existing,
+            ...incoming,
+            // Prioritize new upload, then incoming string URL, then existing, then null
+            image: newImagePath || (incoming.image && typeof incoming.image === 'string' ? incoming.image : null) || existing.image || null
+        };
+    }
+
+    const stringValue = typeof finalValue === 'object' ? JSON.stringify(finalValue) : String(finalValue);
     await pool.query(
       'UPDATE settings SET value = ?, updatedAt = CURRENT_TIMESTAMP WHERE key_name = ?',
       [stringValue, key]

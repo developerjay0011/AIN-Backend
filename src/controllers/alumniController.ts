@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { sanitizeString } from '../utils/sanitize.js';
-import { formatDataUrls } from '../utils/urlHelper.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
@@ -34,7 +34,7 @@ export const syncAlumniHistory = asyncHandler(async (req: Request, res: Response
   const fileMap: Record<string, string> = {};
   if (files && files.length > 0) {
     files.forEach(file => {
-      fileMap[file.fieldname] = `/uploads/images/${file.filename}`;
+      fileMap[file.fieldname] = getUploadPath(file) || '';
     });
   }
 
@@ -57,20 +57,23 @@ export const syncAlumniHistory = asyncHandler(async (req: Request, res: Response
   for (let i = 0; i < milestones.length; i++) {
     const m = milestones[i];
     const fieldName = `milestone_image_${i}`;
-    const imageUrl = fileMap[fieldName] || m.imageUrl || m.img; // Support both naming conventions
+    
+    // Standardized image update pattern for alumni milestones
+    const imageUrl = fileMap[fieldName] || (typeof m.imageUrl === 'string' && m.imageUrl.length > 0 ? m.imageUrl : null);
 
     if (!m.id || m.id === '0' || m.id === 0) {
       // Insert
       const newId = `ALM-${Date.now()}-${i}`;
       await pool.query(
         'INSERT INTO alumni_milestones (id, year, title, description, imageUrl, sortOrder) VALUES (?, ?, ?, ?, ?, ?)',
-        [newId, sanitizeString(m.year), sanitizeString(m.title), sanitizeString(m.description || m.desc), imageUrl, i]
+        [newId, sanitizeString(m.year) || null, sanitizeString(m.title) || null, sanitizeString(m.description || m.desc) || null, imageUrl, i]
       );
     } else {
       // Update
+      // Use COALESCE for imageUrl to preserve existing if null
       await pool.query(
-        'UPDATE alumni_milestones SET year = ?, title = ?, description = ?, imageUrl = ?, sortOrder = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
-        [sanitizeString(m.year), sanitizeString(m.title), sanitizeString(m.description || m.desc), imageUrl, i, m.id]
+        'UPDATE alumni_milestones SET year = COALESCE(?, year), title = COALESCE(?, title), description = COALESCE(?, description), imageUrl = COALESCE(?, imageUrl), sortOrder = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+        [sanitizeString(m.year) || null, sanitizeString(m.title) || null, sanitizeString(m.description || m.desc) || null, imageUrl, i, m.id]
       );
     }
   }

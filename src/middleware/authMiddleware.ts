@@ -5,7 +5,8 @@ import { Request, Response, NextFunction } from 'express';
 // Routes that require authentication even for GET requests
 const PROTECTED_GET_PATHS = [
   '/api/admins',
-  '/api/dashboard/stats'
+  '/api/dashboard/stats',
+  '/api/inquiries'
 ];
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {

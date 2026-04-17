@@ -28,20 +28,27 @@ const storage = multer.diskStorage({
 
 // Restricted file types for security
 const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
-  const allowedExtensions = /jpeg|jpg|png|gif|webp|pdf|doc|docx|mp4/;
+  // Expanded whitelist to include modern image formats and other necessary types
+  const allowedExtensions = /jpeg|jpg|png|gif|webp|pdf|doc|docx|mp4|heic|heif|avif|svg|tiff/i;
   const mimetype = allowedExtensions.test(file.mimetype);
   const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
 
-  if (mimetype && extname) {
+  // Allow if either mimetype matches or if extension matches.
+  // This supports browser Blobs and standard files with various casing/formats.
+  if (mimetype || extname) {
     return cb(null, true);
   }
-  cb(new Error('Error: File upload only supports images, documents, and mp4 videos!'), false);
+
+  // Log specific failure details to help debug recurring upload issues
+  console.error(`[UPLOAD REJECTED] Name: ${file.originalname}, Mime: ${file.mimetype}`);
+
+  cb(new Error('Error: File upload only supports images (including HEIC/AVIF), documents, and mp4 videos!'), false);
 };
 
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB limit
+    fileSize: 150 * 1024 * 1024 // 100MB limit
   }
 });

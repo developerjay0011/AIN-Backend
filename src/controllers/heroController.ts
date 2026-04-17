@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { sanitizeObject } from '../utils/sanitize.js';
-import { formatDataUrls } from '../utils/urlHelper.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
@@ -26,7 +26,7 @@ export const getAllHeroSlides = asyncHandler(async (req: Request, res: Response)
 
 export const handleHeroPost = asyncHandler(async (req: Request, res: Response) => {
   const { id, order, isActive, tag } = sanitizeObject(req.body);
-  const imageUrl = req.file ? `/uploads/images/${req.file.filename}` : req.body.imageUrl;
+  const imageUrl = req.file ? getUploadPath(req.file) : (req.body.imageUrl || null);
 
   if (id === '0' || !id || id === 0) {
     // Create
@@ -35,7 +35,6 @@ export const handleHeroPost = asyncHandler(async (req: Request, res: Response) =
     }
 
     const newId = `SLD-${Date.now()}`;
-    // We keep 'title' as empty string for DB compatibility (NOT NULL constraint)
     const query = `
       INSERT INTO hero_slides (id, imageUrl, \`order\`, isActive, tag)
       VALUES (?, ?, ?, ?, ?)
@@ -44,7 +43,7 @@ export const handleHeroPost = asyncHandler(async (req: Request, res: Response) =
     await pool.query(query, [
       newId,
       imageUrl,
-      parseInt(order) || 0,
+      parseInt(order as string) || 0,
       isActive === 'true' || isActive === true,
       tag || 'main'
     ]);
@@ -53,8 +52,8 @@ export const handleHeroPost = asyncHandler(async (req: Request, res: Response) =
     return res.status(201).json(ApiResponse.success(formatDataUrls((newSlide as any)[0]), 'Hero slide created successfully'));
   } else {
     // Update
-    const [existing] = await pool.query('SELECT * FROM hero_slides WHERE id = ?', [id]);
-    if ((existing as any).length === 0) {
+    const [existing]: any = await pool.query('SELECT * FROM hero_slides WHERE id = ?', [id]);
+    if (existing.length === 0) {
       throw new ApiError(404, 'Hero slide not found');
     }
 
@@ -70,9 +69,9 @@ export const handleHeroPost = asyncHandler(async (req: Request, res: Response) =
 
     await pool.query(query, [
       imageUrl,
-      order !== undefined ? parseInt(order) : undefined,
-      isActive !== undefined ? (isActive === 'true' || isActive === true) : undefined,
-      tag,
+      order !== undefined ? parseInt(order as string) : null,
+      isActive !== undefined ? (isActive === 'true' || isActive === true) : null,
+      tag || null,
       id
     ]);
 

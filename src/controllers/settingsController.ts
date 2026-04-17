@@ -58,7 +58,36 @@ export const updateSettings = asyncHandler(async (req: Request, res: Response) =
   const entries = Object.entries(sanitizedSettings);
 
   for (const [key, value] of entries) {
-    const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    // For JSON types, we want to perform a merge to preserve images/logos if omitted
+    const [existingRows]: any = await pool.query('SELECT type, value FROM settings WHERE key_name = ?', [key]);
+    let stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+
+    if (existingRows.length > 0 && existingRows[0].type === 'json') {
+        try {
+            const existingData = JSON.parse(existingRows[0].value);
+            const incomingData = value;
+
+            if (Array.isArray(existingData) && Array.isArray(incomingData)) {
+                // Merge arrays based on index or just preserve logos
+                const merged = incomingData.map((item, idx) => {
+                    const old = existingData[idx];
+                    if (!old) return item;
+                    return {
+                        ...old,
+                        ...item,
+                        // Preserve logo if incoming is missing it
+                        logo: item.logo || old.logo || null
+                    };
+                });
+                stringValue = JSON.stringify(merged);
+            } else if (typeof existingData === 'object' && typeof incomingData === 'object') {
+                stringValue = JSON.stringify({ ...existingData, ...incomingData });
+            }
+        } catch (e) {
+            console.error(`Error merging JSON setting for ${key}:`, e);
+        }
+    }
+
     await pool.query(
       'UPDATE settings SET value = ?, updatedAt = CURRENT_TIMESTAMP WHERE key_name = ?',
       [stringValue, key]

@@ -1,5 +1,5 @@
 import pool from '../config/db.js';
-import { formatDataUrls } from '../utils/urlHelper.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { sanitizeString, sanitizeObject } from '../utils/sanitize.js';
@@ -45,9 +45,8 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
 
     if (req.files && Array.isArray(req.files)) {
       for (const file of req.files) {
-        const mediaId = `MED-${Date.now()}`;
-        const folder = file.mimetype.startsWith('video/') ? 'videos' : 'images';
-        const url = `/uploads/${folder}/${file.filename}`;
+        const mediaId = `MED-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const url = getUploadPath(file);
         const type = file.mimetype.startsWith('video/') ? 'video' : 'photo';
         await pool.query(
           'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
@@ -60,7 +59,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
       const mediaArray = typeof media === 'string' ? JSON.parse(media) : media;
       for (const m of mediaArray) {
         if (!m.id) {
-          const mediaId = `MED-${Date.now()}`;
+          const mediaId = `MED-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
           await pool.query(
             'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
             [mediaId, eventId, m.type || 'photo', m.url, sanitizeString(m.name)]
@@ -108,9 +107,8 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
 
     if (req.files && Array.isArray(req.files)) {
       for (const file of req.files) {
-        const mediaId = `MED-${Date.now()}`;
-        const folder = file.mimetype.startsWith('video/') ? 'videos' : 'images';
-        const url = `/uploads/${folder}/${file.filename}`;
+        const mediaId = `MED-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const url = getUploadPath(file);
         const type = file.mimetype.startsWith('video/') ? 'video' : 'photo';
         await pool.query(
           'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',

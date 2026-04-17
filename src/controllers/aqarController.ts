@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { sanitizeObject } from '../utils/sanitize.js';
-import { formatDataUrls } from '../utils/urlHelper.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
@@ -40,14 +40,19 @@ export const handleAqarPost = asyncHandler(async (req: Request, res: Response) =
   let documentUrl = '';
   let size = 'N/A';
 
+  // Standardized document handling
   if (files && files['document']) {
-    documentUrl = `/uploads/documents/${files['document'][0].filename}`;
+    documentUrl = getUploadPath(files['document'][0]) || '';
     const bytes = files['document'][0].size;
     if (bytes >= 1048576) {
       size = (bytes / 1048576).toFixed(1) + ' MB';
     } else {
       size = (bytes / 1024).toFixed(1) + ' KB';
     }
+  } else {
+    // Falls back to existing URL if provided in body, allowing COALESCE to keep DB value if null
+    documentUrl = req.body.documentUrl || null;
+    size = req.body.size || null;
   }
 
   if (!id || id === '0' || id === 0 || id === 'null') {
@@ -62,27 +67,35 @@ export const handleAqarPost = asyncHandler(async (req: Request, res: Response) =
     const [newAqar] = await pool.query('SELECT * FROM aqars WHERE id = ?', [aqarId]);
     return res.status(201).json(ApiResponse.success(formatDataUrls((newAqar as any)[0]), 'AQAR report published successfully'));
   } else {
-    const [existing] = await pool.query('SELECT * FROM aqars WHERE id = ?', [id]);
-    if ((existing as any).length === 0) {
+    const [existing]: any = await pool.query('SELECT * FROM aqars WHERE id = ?', [id]);
+    if (existing.length === 0) {
       throw new ApiError(404, 'AQAR report not found');
     }
-    let updateQuery = `
+
+    const query = `
       UPDATE aqars SET 
         year = COALESCE(?, year), 
         title = COALESCE(?, title), 
         description = COALESCE(?, description), 
         status = COALESCE(?, status), 
         date = COALESCE(?, date),
+        documentUrl = COALESCE(?, documentUrl),
+        size = COALESCE(?, size),
         updatedAt = CURRENT_TIMESTAMP
+      WHERE id = ?
     `;
-    const queryParams = [year, title, description, status, date];
-    if (documentUrl) {
-      updateQuery += `, documentUrl = ?, size = ?`;
-      queryParams.push(documentUrl, size);
-    }
-    updateQuery += ` WHERE id = ?`;
-    queryParams.push(id);
-    await pool.query(updateQuery, queryParams);
+
+    await pool.query(query, [
+      year || null,
+      title || null,
+      description || null,
+      status || null,
+      date || null,
+      documentUrl,
+      size,
+      id
+    ]);
+
     const [updatedAqar] = await pool.query('SELECT * FROM aqars WHERE id = ?', [id]);
     return res.json(ApiResponse.success(formatDataUrls((updatedAqar as any)[0]), 'AQAR report updated successfully'));
   }

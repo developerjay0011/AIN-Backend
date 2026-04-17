@@ -5,56 +5,56 @@ export const seedHero = async () => {
         {
             id: 'HERO-1',
             order: 1,
-            tag: 'home',
+            tag: 'Home',
             isActive: 1,
             imageUrl: '/uploads/images/gallery-2.jpeg'
         },
         {
             id: 'HERO-2',
             order: 2,
-            tag: 'home',
+            tag: 'Home',
             isActive: 1,
             imageUrl: '/uploads/images/gallery-3.jpeg'
         },
         {
             id: 'HERO-3',
             order: 3,
-            tag: 'home',
+            tag: 'Home',
             isActive: 1,
             imageUrl: '/uploads/images/gallery-4.jpeg'
         },
         {
             id: 'HERO-4',
             order: 4,
-            tag: 'home',
+            tag: 'Home',
             isActive: 1,
             imageUrl: '/uploads/images/hero-5.jpeg'
         },
         {
             id: 'HERO-5',
             order: 5,
-            tag: 'home',
+            tag: 'Home',
             isActive: 1,
             imageUrl: '/uploads/images/hero-6.jpeg'
         },
         {
             id: 'HERO-6',
             order: 6,
-            tag: 'home',
+            tag: 'Home',
             isActive: 1,
             imageUrl: '/uploads/images/hero-7.jpeg'
         },
         {
             id: 'HERO-7',
             order: 0,
-            tag: 'about',
+            tag: 'About',
             isActive: 1,
-            imageUrl: '/uploads/images/aboutus.png'
+            imageUrl: '/uploads/images/Aboutus.png'
         },
         {
             id: 'HERO-8',
             order: 1,
-            tag: 'about',
+            tag: 'About',
             isActive: 1,
             imageUrl: '/uploads/images/vision.png'
         }

@@ -47,6 +47,8 @@ const migrate = async () => {
           type VARCHAR(20) NOT NULL,
           url TEXT NOT NULL,
           name VARCHAR(255),
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (eventId) REFERENCES gallery_events(id) ON DELETE CASCADE
         )`,
       notices: `
@@ -67,6 +69,8 @@ const migrate = async () => {
           noticeId VARCHAR(255),
           label VARCHAR(255),
           url TEXT,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (noticeId) REFERENCES notices(id) ON DELETE CASCADE
         )`,
       staff: `
@@ -111,7 +115,8 @@ const migrate = async () => {
           id VARCHAR(255) PRIMARY KEY,
           username VARCHAR(255) UNIQUE NOT NULL,
           password VARCHAR(255) NOT NULL,
-          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
       quality_metrics: `
         CREATE TABLE IF NOT EXISTS quality_metrics (
@@ -200,6 +205,17 @@ const migrate = async () => {
       
       // hero_slides table
       { table: 'hero_slides', column: 'tag', query: 'ALTER TABLE hero_slides ADD COLUMN tag VARCHAR(100) DEFAULT \'main\' AFTER isActive' },
+
+      // notice_links table (NEW migration)
+      { table: 'notice_links', column: 'createdAt', query: 'ALTER TABLE notice_links ADD COLUMN createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+      { table: 'notice_links', column: 'updatedAt', query: 'ALTER TABLE notice_links ADD COLUMN updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
+
+      // gallery_media table (NEW migration)
+      { table: 'gallery_media', column: 'createdAt', query: 'ALTER TABLE gallery_media ADD COLUMN createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+      { table: 'gallery_media', column: 'updatedAt', query: 'ALTER TABLE gallery_media ADD COLUMN updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
+
+      // admins table (NEW migration)
+      { table: 'admins', column: 'updatedAt', query: 'ALTER TABLE admins ADD COLUMN updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
     ];
 
     for (const m of migrations) {

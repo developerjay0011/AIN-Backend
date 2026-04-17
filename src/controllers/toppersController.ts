@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { sanitizeObject } from '../utils/sanitize.js';
-import { formatDataUrls } from '../utils/urlHelper.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
@@ -20,8 +20,10 @@ export const getAllToppers = asyncHandler(async (req: Request, res: Response) =>
 
 export const handleTopperPost = asyncHandler(async (req: Request, res: Response) => {
   const { id, name, rankTag, rank } = sanitizeObject(req.body);
+
   // Support both req.file (physical) and req.body.image (base64 or existing URL)
-  const image = req.file ? `/uploads/images/${req.file.filename}` : req.body.image;
+  // FALLBACK: If neither exists, use null to ensure COALESCE in SQL works (preserving existing image)
+  const image = req.file ? getUploadPath(req.file) : (req.body.image || null);
 
   if (id === '0' || !id || id === 0) {
     if (!name) {
@@ -34,13 +36,14 @@ export const handleTopperPost = asyncHandler(async (req: Request, res: Response)
       VALUES (?, ?, ?, ?, ?)
     `;
 
-    await pool.query(query, [newId, name, rankTag, rank, image]);
+    // Ensure parameters are not undefined (mysql2 requirement)
+    await pool.query(query, [newId, name || null, rankTag || null, rank || null, image]);
 
     const [newRecord] = await pool.query('SELECT * FROM toppers WHERE id = ?', [newId]);
     return res.status(201).json(ApiResponse.success(formatDataUrls((newRecord as any)[0]), 'Record created successfully'));
   } else {
-    const [existing] = await pool.query('SELECT * FROM toppers WHERE id = ?', [id]);
-    if ((existing as any).length === 0) {
+    const [existing]: any = await pool.query('SELECT * FROM toppers WHERE id = ?', [id]);
+    if (existing.length === 0) {
       throw new ApiError(404, 'Record not found');
     }
 
@@ -54,7 +57,15 @@ export const handleTopperPost = asyncHandler(async (req: Request, res: Response)
       WHERE id = ?
     `;
 
-    await pool.query(query, [name, rankTag, rank, image, id]);
+    // COALESCE logic: if null is passed, the existing DB value is kept. 
+    // Important: undefined would cause an error in mysql2 driver.
+    await pool.query(query, [
+      name || null,
+      rankTag || null,
+      rank || null,
+      image,
+      id
+    ]);
 
     const [updatedRecord] = await pool.query('SELECT * FROM toppers WHERE id = ?', [id]);
     return res.json(ApiResponse.success(formatDataUrls((updatedRecord as any)[0]), 'Record updated successfully'));

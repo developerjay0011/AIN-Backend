@@ -62,23 +62,29 @@ app.use(express.json());
 
 // Rate Limiting
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many requests from this IP, please try again after 15 minutes'
+  message: 'Too many requests from this IP, please try again after 5 minutes'
 });
 
 const inquiryLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // restrict public inquiry forms to 5 requests per 15 mins to prevent spam
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5, // restrict public inquiry forms to 5 requests per 5 mins to prevent spam
   standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many inquiry submissions from this IP, please try again after 15 minutes'
+  message: 'Too many inquiry submissions from this IP, please try again after 5 minutes'
 });
 
 app.use('/api/', apiLimiter);
-app.use('/api/inquiries', inquiryLimiter);
+// Apply inquiry limiter only to POST requests (submissions) to avoid blocking Admin GET requests
+app.use('/api/inquiries', (req, res, next) => {
+  if (req.method === 'POST') {
+    return inquiryLimiter(req, res, next);
+  }
+  next();
+});
 
 // Static Files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

@@ -1,11 +1,11 @@
 import { Router } from 'express';
+import { categoryUpload } from '../config/uploadConfig.js';
 import * as toppersController from '../controllers/toppersController.js';
-import { upload } from '../config/uploadConfig.js';
 
 const router = Router();
 
 router.get('/', toppersController.getAllToppers);
-router.post('/', upload.single('image'), toppersController.handleTopperPost);
 router.delete('/:id', toppersController.deleteTopper);
+router.post('/', categoryUpload('toppers').single('image'), toppersController.handleTopperPost);
 
 export default router;

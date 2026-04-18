@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { upload } from '../config/uploadConfig.js';
+import { categoryUpload } from '../config/uploadConfig.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { getAboutContent, updateAboutContent } from '../controllers/aboutController.js';
 
@@ -9,13 +9,13 @@ const router = Router();
 router.get('/', getAboutContent);
 
 // PUT /api/about - Restricted access to update about content
-router.put('/', 
-  authMiddleware, 
-  upload.fields([
+router.put('/',
+  authMiddleware,
+  categoryUpload('about').fields([
     { name: 'director_image', maxCount: 1 },
     { name: 'principal_image', maxCount: 1 },
     { name: 'registrar_image', maxCount: 1 }
-  ]), 
+  ]),
   updateAboutContent
 );
 

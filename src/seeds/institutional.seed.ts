@@ -3,11 +3,11 @@ import pool from '../config/db.js';
 export const seedInstitutional = async () => {
 
     const toppers = [
-        ['TOP-1774528140494','S Esthar Rani','#1','uploads/images/topper_1.jpeg','University Rank'],
-        ['TOP-1774528142560','Payal Goswami','#6','uploads/images/topper_2.jpeg','University Rank'],
-        ['TOP-1774528142704','Raksha Bishwas','#9','uploads/images/topper_3.jpeg','University Rank'],
-        ['TOP-1774528143540','Kajol Jena','#11','uploads/images/topper_4.jpeg','University Rank'],
-        ['TOP-1774528143629','Tanushree Samanta','#20','uploads/images/topper_5.jpeg','University Rank']
+        ['TOP-1774528140494','S Esthar Rani','#1','uploads/images/toppers/topper_1.jpeg','University Rank'],
+        ['TOP-1774528142560','Payal Goswami','#6','uploads/images/toppers/topper_2.jpeg','University Rank'],
+        ['TOP-1774528142704','Raksha Bishwas','#9','uploads/images/toppers/topper_3.jpeg','University Rank'],
+        ['TOP-1774528143540','Kajol Jena','#11','uploads/images/toppers/topper_4.jpeg','University Rank'],
+        ['TOP-1774528143629','Tanushree Samanta','#20','uploads/images/toppers/topper_5.jpeg','University Rank']
     ];
 
     const milestones = [

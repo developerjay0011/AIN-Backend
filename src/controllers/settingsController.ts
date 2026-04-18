@@ -1,8 +1,8 @@
 import pool from '../config/db.js';
 import { sanitizeString } from '../utils/sanitize.js';
-import { formatDataUrls } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -63,29 +63,29 @@ export const updateSettings = asyncHandler(async (req: Request, res: Response) =
     let stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
 
     if (existingRows.length > 0 && existingRows[0].type === 'json') {
-        try {
-            const existingData = JSON.parse(existingRows[0].value);
-            const incomingData = value;
+      try {
+        const existingData = JSON.parse(existingRows[0].value);
+        const incomingData = value;
 
-            if (Array.isArray(existingData) && Array.isArray(incomingData)) {
-                // Merge arrays based on index or just preserve logos
-                const merged = incomingData.map((item, idx) => {
-                    const old = existingData[idx];
-                    if (!old) return item;
-                    return {
-                        ...old,
-                        ...item,
-                        // Preserve logo if incoming is missing it
-                        logo: item.logo || old.logo || null
-                    };
-                });
-                stringValue = JSON.stringify(merged);
-            } else if (typeof existingData === 'object' && typeof incomingData === 'object') {
-                stringValue = JSON.stringify({ ...existingData, ...incomingData });
-            }
-        } catch (e) {
-            console.error(`Error merging JSON setting for ${key}:`, e);
+        if (Array.isArray(existingData) && Array.isArray(incomingData)) {
+          // Merge arrays based on index or just preserve logos
+          const merged = incomingData.map((item, idx) => {
+            const old = existingData[idx];
+            if (!old) return item;
+            return {
+              ...old,
+              ...item,
+              // Preserve logo if incoming is missing it
+              logo: item.logo || old.logo || null
+            };
+          });
+          stringValue = JSON.stringify(merged);
+        } else if (typeof existingData === 'object' && typeof incomingData === 'object') {
+          stringValue = JSON.stringify({ ...existingData, ...incomingData });
         }
+      } catch (e) {
+        console.error(`Error merging JSON setting for ${key}:`, e);
+      }
     }
 
     await pool.query(
@@ -103,8 +103,8 @@ export const uploadLogo = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const { key_name, index } = req.body;
-  const fileUrl = `/uploads/images/${req.file.filename}`; // Store relative path for portability
-  const fullUrl = `${req.protocol}://${req.get('host')}${fileUrl}`;
+  const fileUrl = getUploadPath(req.file); // Automatically handles uploads/images/settings/
+  const fullUrl = fileUrl ? `${req.protocol}://${req.get('host')}${fileUrl}` : null;
 
   if (key_name) {
     // Fetch current setting to see if it's a list or simple value

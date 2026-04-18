@@ -10,11 +10,11 @@ export const initialSettings = [
     {
         key_name: 'AFFILIATIONS',
         value: JSON.stringify([
-            { initials: 'INC', name: 'Indian Nursing Council, New Delhi', url: 'https://www.indiannursingcouncil.org', logo: 'http://localhost:5001/uploads/inc-logo.png' },
-            { initials: 'ANMHVC', name: "Assam Nurses' Midwives' & Health Visitors' Council, Guwahati", url: 'https://www.assamnursingcouncil.com/', logo: 'http://localhost:5001/uploads/anmhvc-logo.png' },
-            { initials: 'SSUHS', name: 'Srimanta Sankaradeva University of Health Sciences, Assam', url: 'https://ssuhs.ac.in/', logo: 'http://localhost:5001/uploads/ssuhs-logo.png' },
-            { initials: 'TNAI', name: 'Trained Nurses Association of India', url: 'https://www.tnaionline.org', logo: 'http://localhost:5001/uploads/tnai-logo.png' },
-            { initials: 'AWES', name: 'Army Welfare Education Society', url: 'https://www.awesindia.com/', logo: 'http://localhost:5001/uploads/awes-logo.png' }
+            { initials: 'INC', name: 'Indian Nursing Council, New Delhi', url: 'https://www.indiannursingcouncil.org', logo: 'http://localhost:5001/uploads/images/settings/inc-logo.png' },
+            { initials: 'ANMHVC', name: "Assam Nurses' Midwives' & Health Visitors' Council, Guwahati", url: 'https://www.assamnursingcouncil.com/', logo: 'http://localhost:5001/uploads/images/settings/anmhvc-logo.png' },
+            { initials: 'SSUHS', name: 'Srimanta Sankaradeva University of Health Sciences, Assam', url: 'https://ssuhs.ac.in/', logo: 'http://localhost:5001/uploads/images/settings/ssuhs-logo.png' },
+            { initials: 'TNAI', name: 'Trained Nurses Association of India', url: 'https://www.tnaionline.org', logo: 'http://localhost:5001/uploads/images/settings/tnai-logo.png' },
+            { initials: 'AWES', name: 'Army Welfare Education Society', url: 'https://www.awesindia.com/', logo: 'http://localhost:5001/uploads/images/settings/awes-logo.png' }
         ]),
         label: 'Affiliations List',
         group_name: 'General',

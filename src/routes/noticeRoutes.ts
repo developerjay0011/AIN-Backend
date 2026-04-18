@@ -1,11 +1,11 @@
 import { Router } from 'express';
+import { upload, categoryUpload } from '../config/uploadConfig.js';
 import * as noticeController from '../controllers/noticeController.js';
-import { upload } from '../config/uploadConfig.js';
 
 const router = Router();
 
 router.get('/', noticeController.getAllNotices);
-router.post('/', upload.fields([
+router.post('/', categoryUpload('notices').fields([
   { name: 'document', maxCount: 1 },
   { name: 'formFile', maxCount: 1 }
 ]), noticeController.handleNoticePost);

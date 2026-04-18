@@ -25,7 +25,7 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
 
   // Standardized image handling for notices
   const imageUrl = (files && files['image']) 
-    ? `/uploads/images/${files['image'][0].filename}` 
+    ? getUploadPath(files['image'][0]) 
     : (req.body.imageUrl || null);
 
   if (id === '0' || !id || id === 0 || id === 'null') {

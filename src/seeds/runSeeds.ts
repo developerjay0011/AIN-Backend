@@ -3,6 +3,7 @@ import { seedHero } from './hero.seed.js';
 import { seedStaff } from './staff.seed.js';
 import { seedAdmins } from './admins.seed.js';
 import { seedEvents } from './events.seed.js';
+import { seedAlumni } from './alumni.seed.js';
 import { seedNotices } from './notices.seed.js';
 import { seedSettings } from './settings.seed.js';
 import { seedInquiries } from './inquiry.seed.js';
@@ -20,7 +21,7 @@ const runAllSeeds = async () => {
             'hero_slides', 'achievements', 'gallery_events', 'gallery_media',
             'notices', 'notice_links', 'staff', 'toppers', 'aqars',
             'admins', 'quality_metrics', 'settings', 'departments',
-            'admission_inquiries', 'contact_inquiries'
+            'admission_inquiries', 'contact_inquiries', 'alumni_milestones'
         ];
         for (const table of tables) {
             await pool.query(`DELETE FROM ${table}`);
@@ -37,6 +38,7 @@ const runAllSeeds = async () => {
         await seedInstitutional();
         await seedSettings();
         await seedHero();
+        await seedAlumni();
 
         console.log('-----------------------------------');
         console.log('✨ ALL PRODUCTION SEEDS COMPLETED! ✨');

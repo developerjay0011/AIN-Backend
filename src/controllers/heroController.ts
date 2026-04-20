@@ -34,6 +34,19 @@ export const handleHeroPost = asyncHandler(async (req: Request, res: Response) =
       throw new ApiError(400, 'Image is required');
     }
 
+    const slideTag = tag || 'main';
+    const slideOrder = parseInt(order as string) || 0;
+
+    // Check for duplicate order in the same tag
+    const [existingSlides]: any = await pool.query(
+      'SELECT id FROM hero_slides WHERE tag = ? AND `order` = ?',
+      [slideTag, slideOrder]
+    );
+
+    if (existingSlides.length > 0) {
+      throw new ApiError(400, `A slide with tag "${slideTag}" and order ${slideOrder} already exists.`);
+    }
+
     const newId = `SLD-${Date.now()}`;
     const query = `
       INSERT INTO hero_slides (id, imageUrl, \`order\`, isActive, tag)
@@ -43,18 +56,30 @@ export const handleHeroPost = asyncHandler(async (req: Request, res: Response) =
     await pool.query(query, [
       newId,
       imageUrl,
-      parseInt(order as string) || 0,
+      slideOrder,
       isActive === 'true' || isActive === true,
-      tag || 'main'
+      slideTag
     ]);
 
     const [newSlide] = await pool.query('SELECT * FROM hero_slides WHERE id = ?', [newId]);
     return res.status(201).json(ApiResponse.success(formatDataUrls((newSlide as any)[0]), 'Hero slide created successfully'));
   } else {
-    // Update
-    const [existing]: any = await pool.query('SELECT * FROM hero_slides WHERE id = ?', [id]);
-    if (existing.length === 0) {
+    const [currentSlide]: any = await pool.query('SELECT tag, `order` FROM hero_slides WHERE id = ?', [id]);
+    if (currentSlide.length === 0) {
       throw new ApiError(404, 'Hero slide not found');
+    }
+
+    const finalTag = tag || currentSlide[0].tag;
+    const finalOrder = order !== undefined ? parseInt(order as string) : currentSlide[0].order;
+
+    // Check for duplicate order in the same tag (excluding the current slide)
+    const [duplicateSlides]: any = await pool.query(
+      'SELECT id FROM hero_slides WHERE tag = ? AND `order` = ? AND id != ?',
+      [finalTag, finalOrder, id]
+    );
+
+    if (duplicateSlides.length > 0) {
+      throw new ApiError(400, `A slide with tag "${finalTag}" and order ${finalOrder} already exists.`);
     }
 
     const query = `

@@ -12,7 +12,7 @@ export const getAllToppers = asyncHandler(async (req: Request, res: Response) =>
   // Sort by rank number. Remove '#' and cast to integer.
   const query = `
     SELECT * FROM toppers 
-    ORDER BY CAST(REPLACE(rank, '#', '') AS INTEGER) ASC, createdAt DESC
+    ORDER BY CAST(REPLACE(\`rank\`, '#', '') AS UNSIGNED) ASC, createdAt DESC
   `;
   const [rows] = await pool.query(query);
   res.json(ApiResponse.success(formatDataUrls(rows), 'Toppers fetched successfully'));

@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 import { sanitizeString } from '../utils/sanitize.js';
-import { getUploadPath } from '../utils/urlHelper.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
@@ -34,7 +34,7 @@ export const getAboutContent = asyncHandler(async (req: Request, res: Response) 
     if (!content[key]) content[key] = key === 'ABOUT_MILESTONES' ? [] : { quote: '', body: '' };
   });
 
-  res.json(ApiResponse.success(content, 'About content fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(content), 'About content fetched successfully'));
 });
 
 /**

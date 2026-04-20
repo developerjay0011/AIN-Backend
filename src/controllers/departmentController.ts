@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 import { Request, Response } from 'express';
 import { sanitizeString } from '../utils/sanitize.js';
+import { formatDataUrls } from '../utils/urlHelper.js';
 
 // const departments = [
 //   {
@@ -199,9 +200,9 @@ const ensureTableExists = async () => {
             updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     `);
-    
-    // Auto-cleanup the explicitly removed 'nf' department if it was seeded previously
-    await pool.query("DELETE FROM departments WHERE departmentId = 'nf'");
+
+  // Auto-cleanup the explicitly removed 'nf' department if it was seeded previously
+  await pool.query("DELETE FROM departments WHERE departmentId = 'nf'");
 };
 
 export const getDepartments = async (req: Request, res: Response): Promise<void> => {
@@ -231,7 +232,7 @@ export const getDepartments = async (req: Request, res: Response): Promise<void>
       areas: typeof row.areas === 'string' ? JSON.parse(row.areas) : row.areas
     }));
 
-    res.json(parsedDepts);
+    res.json(formatDataUrls(parsedDepts));
   } catch (error) {
     console.error('Error in getDepartments:', error);
     res.status(500).json({ message: 'Server Error' });
@@ -273,7 +274,7 @@ export const updateDepartment = async (req: Request, res: Response): Promise<voi
       areas: typeof updatedRow.areas === 'string' ? JSON.parse(updatedRow.areas) : updatedRow.areas
     };
 
-    res.json(result);
+    res.json(formatDataUrls(result));
   } catch (error) {
     console.error('Error in updateDepartment:', error);
     res.status(500).json({ message: 'Server Error' });

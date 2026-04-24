@@ -32,7 +32,6 @@ const setupDatabase = async () => {
         id VARCHAR(255) PRIMARY KEY,
         imageUrl TEXT NOT NULL,
         \`order\` INT DEFAULT 0,
-        isActive BOOLEAN DEFAULT 1,
         tag VARCHAR(100) DEFAULT 'main',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -74,7 +73,6 @@ const setupDatabase = async () => {
         type VARCHAR(100),
         description TEXT,
         critical BOOLEAN DEFAULT 0,
-        imageUrl TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
@@ -115,7 +113,6 @@ const setupDatabase = async () => {
         status VARCHAR(50) DEFAULT 'Pending',
         date VARCHAR(100),
         documentUrl TEXT,
-        size VARCHAR(50),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
@@ -179,12 +176,13 @@ const setupDatabase = async () => {
       )`,
       `CREATE TABLE IF NOT EXISTS departments (
         id VARCHAR(255) PRIMARY KEY,
+        departmentId VARCHAR(255) UNIQUE NOT NULL,
         name VARCHAR(255) NOT NULL,
+        shortName VARCHAR(100) NOT NULL,
         overview TEXT,
         areas TEXT,
-        faculty TEXT,
-        clinicalHours VARCHAR(100),
-        sortOrder INT DEFAULT 0,
+        faculty INT DEFAULT 0,
+        clinicalHours VARCHAR(255),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`
@@ -243,7 +241,12 @@ const setupDatabase = async () => {
       console.log('✅ Initial site settings seeded.');
     }
 
-    console.log('🚀 Database setup complete!');
+    // Clean up redundant settings: 'About Us' group is now handled by /api/about
+    console.log('⏳ Cleaning up redundant settings...');
+    await pool.query("DELETE FROM settings WHERE group_name = 'About Us'");
+    console.log('✅ Redundant settings removed.');
+
+    console.log('🚀 Database migration complete!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Database setup failed:', error);

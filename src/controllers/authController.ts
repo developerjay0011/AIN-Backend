@@ -28,9 +28,7 @@ const verifyCaptcha = (token: string, answer: string) => {
 };
 
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const username = sanitizeString(req.body.username);

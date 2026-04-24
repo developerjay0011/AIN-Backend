@@ -4,9 +4,7 @@ import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getAllAqars = asyncHandler(async (req: Request, res: Response) => {
   const [aqars] = await pool.query('SELECT * FROM aqars ORDER BY date DESC');
@@ -28,7 +26,7 @@ export const getAllAqars = asyncHandler(async (req: Request, res: Response) => {
   });
 
   res.json(ApiResponse.success({
-    reports: formatDataUrls(aqars),
+    reports: formatDataUrls(aqars, ['documentUrl']),
     highlights
   }, 'AQAR data and highlights fetched successfully'));
 });
@@ -38,21 +36,12 @@ export const handleAqarPost = asyncHandler(async (req: Request, res: Response) =
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
   let documentUrl = '';
-  let size = 'N/A';
 
   // Standardized document handling
   if (files && files['document']) {
     documentUrl = getUploadPath(files['document'][0]) || '';
-    const bytes = files['document'][0].size;
-    if (bytes >= 1048576) {
-      size = (bytes / 1048576).toFixed(1) + ' MB';
-    } else {
-      size = (bytes / 1024).toFixed(1) + ' KB';
-    }
   } else {
-    // Falls back to existing URL if provided in body, allowing COALESCE to keep DB value if null
-    documentUrl = req.body.documentUrl || null;
-    size = req.body.size || null;
+    documentUrl = req.body.documentUrl || '';
   }
 
   if (!id || id === '0' || id === 0 || id === 'null') {
@@ -61,11 +50,11 @@ export const handleAqarPost = asyncHandler(async (req: Request, res: Response) =
     }
     const aqarId = `AQR-${Date.now()}`;
     await pool.query(
-      'INSERT INTO aqars (id, year, title, description, status, date, documentUrl, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [aqarId, year, title, description, status || 'Pending', date, documentUrl, size]
+      'INSERT INTO aqars (id, year, title, description, status, date, documentUrl) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [aqarId, year, title, description, status || 'Pending', date, documentUrl]
     );
     const [newAqar] = await pool.query('SELECT * FROM aqars WHERE id = ?', [aqarId]);
-    return res.status(201).json(ApiResponse.success(formatDataUrls((newAqar as any)[0]), 'AQAR report published successfully'));
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newAqar as any)[0], ['documentUrl']), 'AQAR report published successfully'));
   } else {
     const [existing]: any = await pool.query('SELECT * FROM aqars WHERE id = ?', [id]);
     if (existing.length === 0) {
@@ -80,7 +69,6 @@ export const handleAqarPost = asyncHandler(async (req: Request, res: Response) =
         status = COALESCE(?, status), 
         date = COALESCE(?, date),
         documentUrl = COALESCE(?, documentUrl),
-        size = COALESCE(?, size),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
@@ -92,12 +80,11 @@ export const handleAqarPost = asyncHandler(async (req: Request, res: Response) =
       status || null,
       date || null,
       documentUrl,
-      size,
       id
     ]);
 
     const [updatedAqar] = await pool.query('SELECT * FROM aqars WHERE id = ?', [id]);
-    return res.json(ApiResponse.success(formatDataUrls((updatedAqar as any)[0]), 'AQAR report updated successfully'));
+    return res.json(ApiResponse.success(formatDataUrls((updatedAqar as any)[0], ['documentUrl']), 'AQAR report updated successfully'));
   }
 });
 

@@ -4,9 +4,7 @@ import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getAllToppers = asyncHandler(async (req: Request, res: Response) => {
   // Sort by rank number. Remove '#' and cast to integer.
@@ -15,7 +13,7 @@ export const getAllToppers = asyncHandler(async (req: Request, res: Response) =>
     ORDER BY CAST(REPLACE(\`rank\`, '#', '') AS UNSIGNED) ASC, createdAt DESC
   `;
   const [rows] = await pool.query(query);
-  res.json(ApiResponse.success(formatDataUrls(rows), 'Toppers fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(rows, ['imageUrl']), 'Toppers fetched successfully'));
 });
 
 export const handleTopperPost = asyncHandler(async (req: Request, res: Response) => {
@@ -40,7 +38,7 @@ export const handleTopperPost = asyncHandler(async (req: Request, res: Response)
     await pool.query(query, [newId, name || null, rankTag || null, rank || null, image]);
 
     const [newRecord] = await pool.query('SELECT * FROM toppers WHERE id = ?', [newId]);
-    return res.status(201).json(ApiResponse.success(formatDataUrls((newRecord as any)[0]), 'Record created successfully'));
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newRecord as any)[0], ['imageUrl']), 'Record created successfully'));
   } else {
     const [existing]: any = await pool.query('SELECT * FROM toppers WHERE id = ?', [id]);
     if (existing.length === 0) {
@@ -68,7 +66,7 @@ export const handleTopperPost = asyncHandler(async (req: Request, res: Response)
     ]);
 
     const [updatedRecord] = await pool.query('SELECT * FROM toppers WHERE id = ?', [id]);
-    return res.json(ApiResponse.success(formatDataUrls((updatedRecord as any)[0]), 'Record updated successfully'));
+    return res.json(ApiResponse.success(formatDataUrls((updatedRecord as any)[0], ['imageUrl']), 'Record updated successfully'));
   }
 });
 

@@ -4,9 +4,7 @@ import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { sanitizeString, sanitizeObject } from '../utils/sanitize.js';
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getAllNotices = asyncHandler(async (req: Request, res: Response) => {
   const [notices] = await pool.query('SELECT * FROM notices ORDER BY createdAt DESC');
@@ -16,17 +14,12 @@ export const getAllNotices = asyncHandler(async (req: Request, res: Response) =>
     notice.links = links;
   }
 
-  res.json(ApiResponse.success(formatDataUrls(notices), 'Notices fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(notices, ['url']), 'Notices fetched successfully'));
 });
 
 export const handleNoticePost = asyncHandler(async (req: Request, res: Response) => {
   const { id, title, date, type, description, critical, links } = sanitizeObject(req.body);
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-
-  // Standardized image handling for notices
-  const imageUrl = (files && files['image']) 
-    ? getUploadPath(files['image'][0]) 
-    : (req.body.imageUrl || null);
 
   if (id === '0' || !id || id === 0 || id === 'null') {
     if (!title) {
@@ -35,8 +28,8 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
 
     const noticeId = `NOT-${Date.now()}`;
     await pool.query(
-      'INSERT INTO notices (id, title, date, type, description, critical, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [noticeId, title, date, type, description, critical === 'true' || critical === true, imageUrl]
+      'INSERT INTO notices (id, title, date, type, description, critical) VALUES (?, ?, ?, ?, ?, ?)',
+      [noticeId, title, date, type, description, critical === 'true' || critical === true]
     );
 
     // Handle existing links from JSON string/array
@@ -65,7 +58,7 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
     const [newNotice] = await pool.query('SELECT * FROM notices WHERE id = ?', [noticeId]);
     const [newLinks] = await pool.query('SELECT label, url FROM notice_links WHERE noticeId = ?', [noticeId]);
     (newNotice as any)[0].links = newLinks;
-    return res.status(201).json(ApiResponse.success(formatDataUrls((newNotice as any)[0]), 'Notice published successfully'));
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newNotice as any)[0], ['imageUrl', 'url']), 'Notice published successfully'));
   } else {
     const [existing]: any = await pool.query('SELECT * FROM notices WHERE id = ?', [id]);
     if (existing.length === 0) {
@@ -79,10 +72,9 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
         type = COALESCE(?, type), 
         description = COALESCE(?, description), 
         critical = ?,
-        imageUrl = COALESCE(?, imageUrl),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?`,
-      [title || null, date || null, type || null, description || null, critical === 'true' || critical === true, imageUrl, id]
+      [title || null, date || null, type || null, description || null, critical === 'true' || critical === true, id]
     );
 
     // Smart Link Handling during update
@@ -120,7 +112,7 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
     const [updatedNotice] = await pool.query('SELECT * FROM notices WHERE id = ?', [id]);
     const [currentLinks] = await pool.query('SELECT label, url FROM notice_links WHERE noticeId = ?', [id]);
     (updatedNotice as any)[0].links = currentLinks;
-    return res.json(ApiResponse.success(formatDataUrls((updatedNotice as any)[0]), 'Notice updated successfully'));
+    return res.json(ApiResponse.success(formatDataUrls((updatedNotice as any)[0], ['url']), 'Notice updated successfully'));
   }
 });
 

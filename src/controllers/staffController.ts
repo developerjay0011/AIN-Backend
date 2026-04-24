@@ -4,9 +4,7 @@ import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getAllStaff = asyncHandler(async (req: Request, res: Response) => {
   const { type } = req.query;
@@ -19,7 +17,7 @@ export const getAllStaff = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const [rows] = await pool.query(query, params);
-  res.json(ApiResponse.success(formatDataUrls(rows), 'Staff members fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(rows, ['image']), 'Staff members fetched successfully'));
 });
 
 export const handleStaffPost = asyncHandler(async (req: Request, res: Response) => {
@@ -51,7 +49,7 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
     ]);
 
     const [newMember] = await pool.query('SELECT * FROM staff WHERE id = ?', [newId]);
-    return res.status(201).json(ApiResponse.success(formatDataUrls((newMember as any)[0]), 'Staff member created successfully'));
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newMember as any)[0], ['image']), 'Staff member created successfully'));
   } else {
     // Update Logic
     const [existing]: any = await pool.query('SELECT * FROM staff WHERE id = ?', [id]);
@@ -86,7 +84,7 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
     ]);
 
     const [updatedMember] = await pool.query('SELECT * FROM staff WHERE id = ?', [id]);
-    return res.json(ApiResponse.success(formatDataUrls((updatedMember as any)[0]), 'Staff member updated successfully'));
+    return res.json(ApiResponse.success(formatDataUrls((updatedMember as any)[0], ['image']), 'Staff member updated successfully'));
   }
 });
 

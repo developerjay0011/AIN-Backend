@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 import { seedHero } from './hero.seed.js';
 import { seedStaff } from './staff.seed.js';
+import { seedAbout } from './about.seed.js';
 import { seedAdmins } from './admins.seed.js';
 import { seedEvents } from './events.seed.js';
 import { seedAlumni } from './alumni.seed.js';
@@ -36,6 +37,7 @@ const runAllSeeds = async () => {
         await seedInquiries();
         await seedNotices();
         await seedInstitutional();
+        await seedAbout();
         await seedSettings();
         await seedHero();
         await seedAlumni();

@@ -3,6 +3,7 @@ import pool from '../config/db.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { sanitizeString } from '../utils/sanitize.js';
 import jwt from 'jsonwebtoken';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 /**
  * Helper to verify CAPTCHA token and answer
@@ -27,9 +28,6 @@ const verifyCaptcha = (token: string, answer: string) => {
 };
 
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-};
 
 // --- Admission Inquiries ---
 

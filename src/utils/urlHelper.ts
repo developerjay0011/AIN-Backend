@@ -35,33 +35,47 @@ export const ensureStringUrl = (input: any): string => {
 
 /**
  * Recursively scans an object or array and formats any strings that look like relative upload paths.
+ * If keysToFormat is provided, only those specific keys will be formatted.
+ * Otherwise, uses a heuristic based on key names and values.
  */
-export const formatDataUrls = (data: any): any => {
+export const formatDataUrls = (data: any, keysToFormat?: string[]): any => {
   if (!data) return data;
 
   if (Array.isArray(data)) {
-    return data.map(item => formatDataUrls(item));
+    return data.map(item => formatDataUrls(item, keysToFormat));
   }
 
-  if (typeof data === 'object') {
+  // Only process plain objects, skip null and Date objects
+  if (typeof data === 'object' && data !== null && !(data instanceof Date)) {
     const formatted: any = { ...data };
     for (const key in formatted) {
       const value = formatted[key];
 
-      // Check for common image/document keys or values that look like upload paths
-      if (typeof value === 'string' && (
-        key.toLowerCase().includes('image') ||
-        key.toLowerCase().includes('document') ||
-        key.toLowerCase().includes('file') ||
-        key.toLowerCase().includes('url') ||
-        key.toLowerCase().includes('logo') ||
-        key.toLowerCase().includes('icon') ||
-        value.includes('/uploads/') ||
-        value.includes('localhost:5001')
-      )) {
-        formatted[key] = formatFileUrl(value);
+      if (typeof value === 'string') {
+        let shouldFormat = false;
+
+        if (keysToFormat && keysToFormat.length > 0) {
+          // If keys are provided, only format if the key is in the list
+          shouldFormat = keysToFormat.includes(key);
+        } else {
+          // Fallback to heuristic for backward compatibility
+          shouldFormat = (
+            key.toLowerCase().includes('image') ||
+            key.toLowerCase().includes('document') ||
+            key.toLowerCase().includes('file') ||
+            key.toLowerCase().includes('url') ||
+            key.toLowerCase().includes('logo') ||
+            key.toLowerCase().includes('icon') ||
+            value.includes('/uploads/') ||
+            value.includes('localhost:5001')
+          );
+        }
+
+        if (shouldFormat) {
+          formatted[key] = formatFileUrl(value);
+        }
       } else if (typeof value === 'object') {
-        formatted[key] = formatDataUrls(value);
+        formatted[key] = formatDataUrls(value, keysToFormat);
       }
     }
     return formatted;

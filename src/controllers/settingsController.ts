@@ -4,12 +4,10 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getAllSettings = asyncHandler(async (req: Request, res: Response) => {
-  const [rows] = await pool.query('SELECT * FROM settings ORDER BY group_name, label');
+  const [rows] = await pool.query("SELECT * FROM settings WHERE group_name != 'About Us' ORDER BY group_name, label");
 
   // Format settings into a key-value object grouped by section if needed, 
   // or just return as a flat list. For complexity, we'll return both.
@@ -26,8 +24,8 @@ export const getAllSettings = asyncHandler(async (req: Request, res: Response) =
     settingsMap[row.key_name] = value;
   });
 
-  const formattedRows = formatDataUrls(rows);
-  const formattedMap = formatDataUrls(settingsMap);
+  const formattedRows = formatDataUrls(rows, ['logo', 'image', 'icon']);
+  const formattedMap = formatDataUrls(settingsMap, ['logo', 'image', 'icon']);
 
   res.json(ApiResponse.success({
     list: formattedRows,
@@ -59,7 +57,11 @@ export const updateSettings = asyncHandler(async (req: Request, res: Response) =
 
   for (const [key, value] of entries) {
     // For JSON types, we want to perform a merge to preserve images/logos if omitted
-    const [existingRows]: any = await pool.query('SELECT type, value FROM settings WHERE key_name = ?', [key]);
+    const [existingRows]: any = await pool.query('SELECT type, value, group_name FROM settings WHERE key_name = ?', [key]);
+
+    if (existingRows.length === 0) continue;
+    if (existingRows[0].group_name === 'About Us') continue;
+
     let stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
 
     if (existingRows.length > 0 && existingRows[0].type === 'json') {
@@ -112,6 +114,11 @@ export const uploadLogo = asyncHandler(async (req: Request, res: Response) => {
 
     if (rows.length > 0) {
       const setting = rows[0];
+
+      if (setting.group_name === 'About Us') {
+        throw new ApiError(403, 'Logo upload for About Us section must be handled via the About API');
+      }
+
       let newValue: any = fileUrl;
 
       if (setting.type === 'json' && index !== undefined) {

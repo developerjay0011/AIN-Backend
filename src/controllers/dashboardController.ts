@@ -2,9 +2,7 @@ import pool from '../config/db.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { Request, Response, NextFunction } from 'express';
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
   // Total Counts for Primary Modules

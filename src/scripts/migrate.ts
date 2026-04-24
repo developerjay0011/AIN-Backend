@@ -11,7 +11,6 @@ const migrate = async () => {
           id VARCHAR(255) PRIMARY KEY,
           imageUrl TEXT NOT NULL,
           \`order\` INT DEFAULT 0,
-          isActive BOOLEAN DEFAULT 1,
           tag VARCHAR(100) DEFAULT 'main',
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -59,7 +58,6 @@ const migrate = async () => {
           type VARCHAR(100),
           description TEXT,
           critical BOOLEAN DEFAULT 0,
-          imageUrl TEXT,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
@@ -106,7 +104,6 @@ const migrate = async () => {
           status VARCHAR(50) DEFAULT 'Pending',
           date VARCHAR(100),
           documentUrl TEXT,
-          size VARCHAR(50),
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
@@ -185,7 +182,6 @@ const migrate = async () => {
           areas TEXT,
           faculty INT DEFAULT 0,
           clinicalHours VARCHAR(255),
-          sortOrder INT DEFAULT 0,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`
@@ -202,9 +198,9 @@ const migrate = async () => {
       { table: 'departments', column: 'departmentId', query: 'ALTER TABLE departments ADD COLUMN departmentId VARCHAR(255) UNIQUE AFTER id' },
       { table: 'departments', column: 'shortName', query: 'ALTER TABLE departments ADD COLUMN shortName VARCHAR(100) AFTER name' },
       { table: 'departments', column: 'sortOrder', query: 'ALTER TABLE departments ADD COLUMN sortOrder INT DEFAULT 0 AFTER clinicalHours' },
-      
+
       // hero_slides table
-      { table: 'hero_slides', column: 'tag', query: 'ALTER TABLE hero_slides ADD COLUMN tag VARCHAR(100) DEFAULT \'main\' AFTER isActive' },
+      { table: 'hero_slides', column: 'tag', query: 'ALTER TABLE hero_slides ADD COLUMN tag VARCHAR(100) DEFAULT \'main\' AFTER imageUrl' },
 
       // notice_links table (NEW migration)
       { table: 'notice_links', column: 'createdAt', query: 'ALTER TABLE notice_links ADD COLUMN createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
@@ -234,8 +230,8 @@ const migrate = async () => {
       }
     }
 
-    // Explicitly remove title, subtitle, and link from hero_slides as requested
-    const columnsToRemove = ['title', 'subtitle', 'link'];
+    // Explicitly remove title, subtitle, link, and isActive from hero_slides as requested
+    const columnsToRemove = ['title', 'subtitle', 'link', 'isActive'];
     for (const col of columnsToRemove) {
       try {
         const [exists]: any = await pool.query(`SHOW COLUMNS FROM hero_slides LIKE ?`, [col]);
@@ -248,6 +244,11 @@ const migrate = async () => {
         console.warn(`⚠️  Could not remove column ${col}:`, err.message);
       }
     }
+
+    // Clean up redundant settings: 'About Us' group is now handled by /api/about
+    console.log('⏳ Cleaning up redundant settings...');
+    await pool.query("DELETE FROM settings WHERE group_name = 'About Us'");
+    console.log('✅ Redundant settings removed.');
 
     console.log('🚀 Database migration complete!');
     process.exit(0);

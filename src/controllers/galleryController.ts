@@ -4,9 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { sanitizeString, sanitizeObject } from '../utils/sanitize.js';
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getAllEvents = asyncHandler(async (req: Request, res: Response) => {
   const [events] = await pool.query('SELECT * FROM gallery_events ORDER BY date DESC');
@@ -26,7 +24,7 @@ export const getAllEvents = asyncHandler(async (req: Request, res: Response) => 
     }
   }
 
-  res.json(ApiResponse.success(formatDataUrls(events), 'Events fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(events, ['url']), 'Events fetched successfully'));
 });
 
 export const handleGalleryPost = asyncHandler(async (req: Request, res: Response) => {
@@ -71,7 +69,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
     const [newEvent] = await pool.query('SELECT * FROM gallery_events WHERE id = ?', [eventId]);
     const [newMedia] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE eventId = ?', [eventId]);
     (newEvent as any)[0].media = newMedia;
-    return res.status(201).json(ApiResponse.success(formatDataUrls((newEvent as any)[0]), 'Event created successfully'));
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newEvent as any)[0], ['url']), 'Event created successfully'));
   } else {
     const [existing] = await pool.query('SELECT * FROM gallery_events WHERE id = ?', [id]);
     if ((existing as any).length === 0) {
@@ -120,7 +118,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
     const [updatedEvent] = await pool.query('SELECT * FROM gallery_events WHERE id = ?', [id]);
     const [currentMedia] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE eventId = ?', [id]);
     (updatedEvent as any)[0].media = currentMedia;
-    return res.json(ApiResponse.success(formatDataUrls((updatedEvent as any)[0]), 'Event updated successfully'));
+    return res.json(ApiResponse.success(formatDataUrls((updatedEvent as any)[0], ['url']), 'Event updated successfully'));
   }
 });
 

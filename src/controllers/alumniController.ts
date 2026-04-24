@@ -1,19 +1,16 @@
 import pool from '../config/db.js';
 import { sanitizeString } from '../utils/sanitize.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
-
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 /**
  * Get all Alumni Milestones
  */
 export const getAlumniHistory = asyncHandler(async (req: Request, res: Response) => {
   const [rows] = await pool.query('SELECT * FROM alumni_milestones ORDER BY sortOrder ASC, year DESC');
-  res.json(ApiResponse.success(formatDataUrls(rows), 'Alumni history fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(rows, ['imageUrl']), 'Alumni history fetched successfully'));
 });
 
 /**
@@ -23,61 +20,58 @@ export const getAlumniHistory = asyncHandler(async (req: Request, res: Response)
 export const syncAlumniHistory = asyncHandler(async (req: Request, res: Response) => {
   const data = req.body.data ? JSON.parse(req.body.data) : req.body;
   const milestones = data.milestones || [];
-  const files = req.files as Express.Multer.File[];
+  const files = req.files as Express.Multer.File[] | undefined;
 
   if (!Array.isArray(milestones)) {
     throw new ApiError(400, 'Invalid milestones data');
   }
 
-  // Handle files and map them to the correct milestones
-  // We expect field names like "milestone_image_0", "milestone_image_1", etc.
+  // Map uploaded files to fieldnames (e.g., "milestone_image_0")
   const fileMap: Record<string, string> = {};
-  if (files && files.length > 0) {
+  if (files) {
     files.forEach(file => {
       fileMap[file.fieldname] = getUploadPath(file) || '';
     });
   }
 
-  // Use a transaction-like sequential approach for atomic updates
-
-  // First, get all current IDs to see what needs to be deleted
+  // Identify milestones to delete
   const [currentRows] = await pool.query('SELECT id FROM alumni_milestones');
   const currentIds = (currentRows as any[]).map(row => row.id);
-  const newIds = milestones.map((m: any) => m.id).filter((id: any) => id && id !== '0');
+  const incomingIds = milestones.map((m: any) => m.id).filter((id: any) => id && id !== '0');
+  const idsToDelete = currentIds.filter(id => !incomingIds.includes(id));
 
-  const idsToDelete = currentIds.filter(id => !newIds.includes(id));
-
-  // 1. Delete removed milestones
   if (idsToDelete.length > 0) {
-    const placeholders = idsToDelete.map(() => '?').join(',');
-    await pool.query(`DELETE FROM alumni_milestones WHERE id IN (${placeholders})`, idsToDelete);
+    await pool.query('DELETE FROM alumni_milestones WHERE id IN (?)', [idsToDelete]);
   }
 
-  // 2. Insert or Update remaining ones
+  // Insert or Update milestones
   for (let i = 0; i < milestones.length; i++) {
     const m = milestones[i];
-    const fieldName = `milestone_image_${i}`;
-    
-    // Standardized image update pattern for alumni milestones
-    const imageUrl = fileMap[fieldName] || (typeof m.imageUrl === 'string' && m.imageUrl.length > 0 ? m.imageUrl : null);
+    const imageKey = `milestone_image_${i}`;
+    const imageUrl = fileMap[imageKey] || m.imageUrl || null;
+
+    const payload = [
+      sanitizeString(m.year) || null,
+      sanitizeString(m.title) || null,
+      sanitizeString(m.description || m.desc) || null,
+      imageUrl,
+      i // sortOrder
+    ];
 
     if (!m.id || m.id === '0' || m.id === 0) {
-      // Insert
       const newId = `ALM-${Date.now()}-${i}`;
       await pool.query(
         'INSERT INTO alumni_milestones (id, year, title, description, imageUrl, sortOrder) VALUES (?, ?, ?, ?, ?, ?)',
-        [newId, sanitizeString(m.year) || null, sanitizeString(m.title) || null, sanitizeString(m.description || m.desc) || null, imageUrl, i]
+        [newId, ...payload]
       );
     } else {
-      // Update
-      // Use COALESCE for imageUrl to preserve existing if null
       await pool.query(
-        'UPDATE alumni_milestones SET year = COALESCE(?, year), title = COALESCE(?, title), description = COALESCE(?, description), imageUrl = COALESCE(?, imageUrl), sortOrder = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
-        [sanitizeString(m.year) || null, sanitizeString(m.title) || null, sanitizeString(m.description || m.desc) || null, imageUrl, i, m.id]
+        'UPDATE alumni_milestones SET year = ?, title = ?, description = ?, imageUrl = ?, sortOrder = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+        [...payload, m.id]
       );
     }
   }
 
   const [finalRows] = await pool.query('SELECT * FROM alumni_milestones ORDER BY sortOrder ASC');
-  res.json(ApiResponse.success(formatDataUrls(finalRows), 'Alumni history synchronized successfully'));
+  res.json(ApiResponse.success(formatDataUrls(finalRows, ['imageUrl']), 'Alumni history synchronized successfully'));
 });

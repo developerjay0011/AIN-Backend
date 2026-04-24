@@ -3,10 +3,8 @@ import pool from '../config/db.js';
 import { sanitizeString } from '../utils/sanitize.js';
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
 
 const PROTECTED_ADMIN_USERNAME = 'admin';
 

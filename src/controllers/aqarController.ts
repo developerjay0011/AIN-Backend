@@ -1,10 +1,10 @@
 import pool from '../config/db.js';
-import { sanitizeObject } from '../utils/sanitize.js';
-import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
-import { Request, Response, NextFunction } from 'express';
-import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
-
+import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
+import { sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
+
 
 export const getAllAqars = asyncHandler(async (req: Request, res: Response) => {
   const [aqars] = await pool.query('SELECT * FROM aqars ORDER BY date DESC');
@@ -32,7 +32,8 @@ export const getAllAqars = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const handleAqarPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, year, title, description, status, date } = sanitizeObject(req.body);
+  let { id, year, title, description, status, date } = sanitizeObject(req.body);
+  date = formatDateToYYYYMMDD(date);
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
   let documentUrl = '';

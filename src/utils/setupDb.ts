@@ -6,12 +6,12 @@ const setupDatabase = async () => {
     console.log('⏳ Setting up database...');
 
     const tables = [
+      'gallery_media',
+      'gallery_events',
+      'notice_links',
+      'notices',
       'hero_slides',
       'achievements',
-      'gallery_events',
-      'gallery_media',
-      'notices',
-      'notice_links',
       'staff',
       'toppers',
       'aqars',
@@ -20,7 +20,15 @@ const setupDatabase = async () => {
       'settings',
       'admission_inquiries',
       'contact_inquiries',
-      'alumni_milestones'
+      'alumni_milestones',
+      'alumni_activities',
+      'alumni_members',
+      'alumni_executives',
+      'placement_members',
+      'placement_stats',
+      'placement_highlights',
+      'organogram_nodes',
+      'administration_members'
     ];
 
     for (const table of tables) {
@@ -86,7 +94,7 @@ const setupDatabase = async () => {
       `CREATE TABLE IF NOT EXISTS staff (
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        role VARCHAR(255),
+        designation VARCHAR(255),
         image TEXT,
         type VARCHAR(50) NOT NULL,
         qualification VARCHAR(255),
@@ -185,6 +193,104 @@ const setupDatabase = async () => {
         clinicalHours VARCHAR(255),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS alumni_activities (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        date VARCHAR(100),
+        description TEXT,
+        imageUrl TEXT,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS alumni_members (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        batch VARCHAR(50) NOT NULL,
+        role VARCHAR(255) NOT NULL,
+        location VARCHAR(255) NOT NULL,
+        company VARCHAR(255) NOT NULL,
+        imageUrl TEXT,
+        verified BOOLEAN DEFAULT 0,
+        linkedinUrl VARCHAR(255),
+        email VARCHAR(255),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS alumni_executives (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        role VARCHAR(255) NOT NULL,
+        batch VARCHAR(50) NOT NULL,
+        imageUrl TEXT,
+        quote TEXT,
+        isHead BOOLEAN DEFAULT 0,
+        linkedinUrl VARCHAR(255),
+        email VARCHAR(255),
+        sortOrder INT DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS placement_members (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        designation VARCHAR(255) NOT NULL,
+        role VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        imageUrl TEXT,
+        sortOrder INT DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS placement_stats (
+        id VARCHAR(255) PRIMARY KEY,
+        year VARCHAR(100) NOT NULL,
+        hospitalsCount INT DEFAULT 0,
+        eligibleStudents INT DEFAULT 0,
+        placedStudents INT DEFAULT 0,
+        higherStudies INT DEFAULT 0,
+        placementPercentage DECIMAL(5,2) DEFAULT 0.00,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS placement_highlights (
+        id VARCHAR(255) PRIMARY KEY,
+        type VARCHAR(100) DEFAULT 'general',
+        text TEXT NOT NULL,
+        sortOrder INT DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS administration_members (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        designation VARCHAR(255) NOT NULL,
+        imageUrl TEXT,
+        qualification VARCHAR(255),
+        experience VARCHAR(255),
+        specialization VARCHAR(255),
+        quote TEXT,
+        description TEXT,
+        sortOrder INT DEFAULT 0,
+        isLinked BOOLEAN DEFAULT 0,
+        staffId VARCHAR(255),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (staffId) REFERENCES staff(id) ON DELETE SET NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS organogram_nodes (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        level INT NOT NULL,
+        parentId VARCHAR(255),
+        memberId VARCHAR(255),
+        customName VARCHAR(255),
+        customSubtitle VARCHAR(255),
+        sortOrder INT DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (memberId) REFERENCES administration_members(id) ON DELETE SET NULL,
+        FOREIGN KEY (parentId) REFERENCES organogram_nodes(id) ON DELETE SET NULL
       )`
     ];
 

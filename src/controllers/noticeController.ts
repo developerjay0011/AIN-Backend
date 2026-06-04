@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
 import pool from '../config/db.js';
+import { Request, Response } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
-import { sanitizeString, sanitizeObject } from '../utils/sanitize.js';
+import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
 
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -18,7 +18,8 @@ export const getAllNotices = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const handleNoticePost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, title, date, type, description, critical, links } = sanitizeObject(req.body);
+  let { id, title, date, type, description, critical, links } = sanitizeObject(req.body);
+  date = formatDateToYYYYMMDD(date);
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
   if (id === '0' || !id || id === 0 || id === 'null') {
@@ -104,7 +105,7 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
       if (files['formFile']) {
         await pool.query("DELETE FROM notice_links WHERE noticeId = ? AND label = 'Form'", [id]);
         const fileUrl = getUploadPath(files['formFile'][0]);
-        const linkId = `LNK-${Date.now() + 1}`; 
+        const linkId = `LNK-${Date.now() + 1}`;
         await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), id, 'Form', fileUrl]);
       }
     }

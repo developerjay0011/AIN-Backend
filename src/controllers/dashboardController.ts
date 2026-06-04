@@ -13,14 +13,13 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
   // Aggregated Media Count (Images, Videos, and Documents)
   // We count unique non-null file reference fields across all relevant tables
   const mediaTables = [
-      { table: 'gallery_media', column: 'url' },
-      { table: 'staff', column: 'image' },
-      { table: 'hero_slides', column: 'imageUrl' },
-      { table: 'toppers', column: 'imageUrl' },
-      { table: 'alumni_milestones', column: 'imageUrl' },
-      { table: 'notices', column: 'imageUrl' },
-      { table: 'notice_links', column: 'url' },
-      { table: 'aqars', column: 'documentUrl' }
+      { table: 'gallery_media',     column: 'url',         hasCreatedAt: false },
+      { table: 'staff',             column: 'image',       hasCreatedAt: true  },
+      { table: 'hero_slides',       column: 'imageUrl',    hasCreatedAt: true  },
+      { table: 'toppers',           column: 'imageUrl',    hasCreatedAt: true  },
+      { table: 'alumni_milestones', column: 'imageUrl',    hasCreatedAt: true  },
+      { table: 'notice_links',      column: 'url',         hasCreatedAt: false },
+      { table: 'aqars',             column: 'documentUrl', hasCreatedAt: true  }
   ];
 
   let totalMediaCount = 0;
@@ -30,8 +29,10 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
       const [total] = await pool.query(`SELECT COUNT(*) as count FROM ${item.table} WHERE ${item.column} IS NOT NULL AND ${item.column} != ''`);
       totalMediaCount += (total as any)[0].count;
 
-      const [trend] = await pool.query(`SELECT COUNT(*) as count FROM ${item.table} WHERE createdAt >= NOW() - INTERVAL 7 DAY AND ${item.column} IS NOT NULL AND ${item.column} != ''`);
-      weeklyMediaTrend += (trend as any)[0].count;
+      if (item.hasCreatedAt) {
+          const [trend] = await pool.query(`SELECT COUNT(*) as count FROM ${item.table} WHERE createdAt >= NOW() - INTERVAL 7 DAY AND ${item.column} IS NOT NULL AND ${item.column} != ''`);
+          weeklyMediaTrend += (trend as any)[0].count;
+      }
   }
 
   // Trends (Last 7 Days) for other modules

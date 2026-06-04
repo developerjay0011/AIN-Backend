@@ -1,8 +1,8 @@
 import pool from '../config/db.js';
-import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
-import { sanitizeString, sanitizeObject } from '../utils/sanitize.js';
+import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
+import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
 
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -28,7 +28,8 @@ export const getAllEvents = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const handleGalleryPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, name, description, date, startTime, endTime, location, mainTag, media, highlights } = sanitizeObject(req.body);
+  let { id, name, description, date, startTime, endTime, location, mainTag, media, highlights } = sanitizeObject(req.body);
+  date = formatDateToYYYYMMDD(date);
 
   if (id === '0' || !id || id === 0) {
     if (!name) {

@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
+import { Request, Response } from 'express';
 import { sanitizeString } from '../utils/sanitize.js';
-import { Request, Response, NextFunction } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 
 /**
@@ -53,8 +53,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) throw new Error('JWT_SECRET environment variable is not set');
 
-  // Token expires in 7 days for security
-  const token = jwt.sign({ id: admin.id, username: admin.username }, jwtSecret, { expiresIn: '7d' });
+  // Token expiration managed via env variable (defaults to 2m)
+  const expiresIn = process.env.JWT_EXPIRES_IN || '2m';
+  const token = jwt.sign({ id: admin.id, username: admin.username }, jwtSecret, { expiresIn: expiresIn as any });
 
   res.json(ApiResponse.success({
     token,

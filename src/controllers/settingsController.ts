@@ -24,8 +24,8 @@ export const getAllSettings = asyncHandler(async (req: Request, res: Response) =
     settingsMap[row.key_name] = value;
   });
 
-  const formattedRows = formatDataUrls(rows, ['logo', 'image', 'icon']);
-  const formattedMap = formatDataUrls(settingsMap, ['logo', 'image', 'icon']);
+  const formattedRows = formatDataUrls(rows);
+  const formattedMap = formatDataUrls(settingsMap);
 
   res.json(ApiResponse.success({
     list: formattedRows,

@@ -55,7 +55,7 @@ app.use(helmet({
 
 app.use(cors({
   origin: (origin, callback) => {
-    const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+    const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:1001';
 
     // If set to *, allow all origins
     if (corsOrigin === '*') {
@@ -94,7 +94,7 @@ const inquiryLimiter = rateLimit({
   message: 'Too many inquiry submissions from this IP, please try again after 5 minutes'
 });
 
-app.use('/api/', apiLimiter);
+// app.use('/api/', apiLimiter);
 // Apply inquiry limiter only to POST requests (submissions) to avoid blocking Admin GET requests
 app.use('/api/inquiries', (req, res, next) => {
   if (req.method === 'POST') {

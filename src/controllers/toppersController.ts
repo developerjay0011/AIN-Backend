@@ -30,7 +30,7 @@ export const handleTopperPost = asyncHandler(async (req: Request, res: Response)
 
     const newId = `TOP-${Date.now()}`;
     const query = `
-      INSERT INTO toppers (id, name, rankTag, rank, imageUrl)
+      INSERT INTO toppers (id, name, rankTag, \`rank\`, imageUrl)
       VALUES (?, ?, ?, ?, ?)
     `;
 
@@ -49,7 +49,7 @@ export const handleTopperPost = asyncHandler(async (req: Request, res: Response)
       UPDATE toppers 
       SET name = COALESCE(?, name),
           rankTag = COALESCE(?, rankTag),
-          rank = COALESCE(?, rank),
+          \`rank\` = COALESCE(?, \`rank\`),
           imageUrl = COALESCE(?, imageUrl),
           updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?

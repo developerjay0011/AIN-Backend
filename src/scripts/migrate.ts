@@ -90,7 +90,7 @@ const migrate = async () => {
           id VARCHAR(255) PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           rankTag VARCHAR(255),
-          rank VARCHAR(255),
+          \`rank\` VARCHAR(255),
           imageUrl TEXT,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -294,8 +294,35 @@ const migrate = async () => {
     };
 
     for (const [name, query] of Object.entries(tables)) {
-      await pool.query(query);
+      let finalQuery = query.trim();
+      if (!finalQuery.includes('CHARACTER SET') && !finalQuery.includes('COLLATE')) {
+        finalQuery += ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci';
+      }
+      await pool.query(finalQuery);
       // console.log(`✓ Table checked: ${name}`);
+    }
+
+    // Ensure 'staff' table has 'designation' instead of 'role'
+    try {
+      const [hasRole]: any = await pool.query("SHOW COLUMNS FROM staff LIKE 'role'");
+      const [hasDesignation]: any = await pool.query("SHOW COLUMNS FROM staff LIKE 'designation'");
+      if (hasRole.length > 0 && hasDesignation.length === 0) {
+        console.log("⏳ Renaming column 'role' to 'designation' in 'staff'...");
+        await pool.query("ALTER TABLE staff CHANGE COLUMN role designation VARCHAR(255)");
+        console.log("✅ Column 'role' renamed to 'designation'.");
+      } else if (hasDesignation.length === 0) {
+        console.log("⏳ Adding missing column 'designation' to table 'staff'...");
+        await pool.query("ALTER TABLE staff ADD COLUMN designation VARCHAR(255) AFTER name");
+        console.log("✅ Column 'designation' added.");
+      }
+      
+      if (hasRole.length > 0 && hasDesignation.length > 0) {
+        console.log("⏳ Dropping redundant column 'role' from 'staff'...");
+        await pool.query("ALTER TABLE staff DROP COLUMN role");
+        console.log("✅ Redundant column 'role' dropped.");
+      }
+    } catch (err: any) {
+      console.warn("⚠️  Could not migrate staff columns:", err.message);
     }
 
     // 2. Incremental Migrations (Adding missing columns safely)

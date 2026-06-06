@@ -37,7 +37,7 @@ export const seedInstitutional = async () => {
 
     for (const [id, n, r, img, tag] of toppers) {
         await pool.query(
-            'REPLACE INTO toppers (id, name, rank, imageUrl, rankTag) VALUES (?, ?, ?, ?, ?)',
+            'REPLACE INTO toppers (id, name, `rank`, imageUrl, rankTag) VALUES (?, ?, ?, ?, ?)',
             [id, n, r, img, tag]
         );
     }

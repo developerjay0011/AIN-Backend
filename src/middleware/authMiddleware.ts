@@ -20,17 +20,19 @@ const PUBLIC_PATHS = [
 ];
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const reqPath = req.originalUrl.split('?')[0];
+
   // 1. Allow all GET requests BY DEFAULT (to support public frontend)
   // EXCEPT for specific administrative paths defined in PROTECTED_GET_PATHS
   if (req.method === 'GET') {
-    const isProtected = PROTECTED_GET_PATHS.some(path => req.path.startsWith(path));
+    const isProtected = PROTECTED_GET_PATHS.some(path => reqPath.startsWith(path));
     if (!isProtected) {
       return next();
     }
   }
 
   // 2. Allow explicit public POST/PUT/DELETE paths
-  if (PUBLIC_PATHS.includes(req.path)) {
+  if (PUBLIC_PATHS.includes(reqPath)) {
     return next();
   }
 

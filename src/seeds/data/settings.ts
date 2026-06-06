@@ -21,7 +21,7 @@ export const initialSettings = [
         type: 'json'
     },
     { key_name: 'WEBSITE_LAST_UPDATED', value: '11-04-2026', label: 'Website last updated date', group_name: 'General' },
-    { key_name: 'ADMIN_DASHBOARD_URL', value: 'http://localhost:5173', label: 'Admin Dashboard Base URL', group_name: 'General' },
+    { key_name: 'ADMIN_DASHBOARD_URL', value: 'http://admin.edu-track.com:3003', label: 'Admin Dashboard Base URL', group_name: 'General' },
     { key_name: 'HOSTEL_DESCRIPTION', value: 'The Army Institute of Nursing provides comfortable, secure, and disciplined hostel accommodation for its students. Managed under Army standards, the hostel features clean living quarters, a hygienic common mess, study halls, and 24/7 security. It acts as a second home for students, promoting a supportive environment for studies and personal growth.', label: 'Hostel Description', group_name: 'Hostel' },
     { key_name: 'HOSTEL_RULE_BOOK_PDF', value: '/uploads/documents/settings/hostel-rules.pdf', label: 'Hostel Rule Book PDF', group_name: 'Hostel' },
     { key_name: 'HOSTEL_WARDEN_NAME', value: 'Mrs. Indrani Sharma', label: 'Hostel Warden Name', group_name: 'Hostel' },

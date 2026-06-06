@@ -108,7 +108,7 @@ const setupDatabase = async () => {
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         rankTag VARCHAR(255),
-        rank VARCHAR(255),
+        \`rank\` VARCHAR(255),
         imageUrl TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -296,7 +296,11 @@ const setupDatabase = async () => {
 
 
     for (const query of createTablesQueries) {
-      await pool.query(query);
+      let finalQuery = query.trim();
+      if (!finalQuery.includes('CHARACTER SET') && !finalQuery.includes('COLLATE')) {
+        finalQuery += ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci';
+      }
+      await pool.query(finalQuery);
     }
     console.log('✅ All tables ensured.');
 

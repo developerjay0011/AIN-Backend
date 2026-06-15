@@ -25,30 +25,40 @@ const migrate = async () => {
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
-      gallery_events: `
-        CREATE TABLE IF NOT EXISTS gallery_events (
+      events: `
+        CREATE TABLE IF NOT EXISTS events (
           id VARCHAR(255) PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           description TEXT,
-          highlights TEXT,
           date VARCHAR(100),
           startTime VARCHAR(20),
           endTime VARCHAR(20),
           location VARCHAR(255),
           mainTag VARCHAR(100),
+          highlights TEXT,
+          coverImage TEXT,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      gallery_albums: `
+        CREATE TABLE IF NOT EXISTS gallery_albums (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          coverImage TEXT,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
       gallery_media: `
         CREATE TABLE IF NOT EXISTS gallery_media (
           id VARCHAR(255) PRIMARY KEY,
-          eventId VARCHAR(255),
+          albumId VARCHAR(255),
           type VARCHAR(20) NOT NULL,
           url TEXT NOT NULL,
           name VARCHAR(255),
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          FOREIGN KEY (eventId) REFERENCES gallery_events(id) ON DELETE CASCADE
+          FOREIGN KEY (albumId) REFERENCES gallery_albums(id) ON DELETE CASCADE
         )`,
       notices: `
         CREATE TABLE IF NOT EXISTS notices (
@@ -182,6 +192,8 @@ const migrate = async () => {
           areas TEXT,
           faculty INT DEFAULT 0,
           clinicalHours VARCHAR(255),
+          hod VARCHAR(255),
+          facilities TEXT,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
@@ -190,6 +202,8 @@ const migrate = async () => {
           id VARCHAR(255) PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           designation VARCHAR(255) NOT NULL,
+          section VARCHAR(50) DEFAULT 'director',
+          role VARCHAR(255),
           imageUrl TEXT,
           qualification VARCHAR(255),
           experience VARCHAR(255),
@@ -276,20 +290,79 @@ const migrate = async () => {
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
-      organogram_nodes: `
-        CREATE TABLE IF NOT EXISTS organogram_nodes (
+      placement_collaborations: `
+        CREATE TABLE IF NOT EXISTS placement_collaborations (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          logoUrl TEXT,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      placement_resources: `
+        CREATE TABLE IF NOT EXISTS placement_resources (
           id VARCHAR(255) PRIMARY KEY,
           title VARCHAR(255) NOT NULL,
-          level INT NOT NULL,
-          parentId VARCHAR(255),
-          memberId VARCHAR(255),
-          customName VARCHAR(255),
-          customSubtitle VARCHAR(255),
-          sortOrder INT DEFAULT 0,
+          description TEXT,
+          fileUrl TEXT NOT NULL,
+          type VARCHAR(50) NOT NULL,
+          year INT DEFAULT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      programs: `
+        CREATE TABLE IF NOT EXISTS programs (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      courses: `
+        CREATE TABLE IF NOT EXISTS courses (
+          id VARCHAR(255) PRIMARY KEY,
+          programId VARCHAR(255) NOT NULL,
+          image TEXT,
+          title VARCHAR(255) NOT NULL,
+          description TEXT,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          FOREIGN KEY (memberId) REFERENCES administration_members(id) ON DELETE SET NULL,
-          FOREIGN KEY (parentId) REFERENCES organogram_nodes(id) ON DELETE SET NULL
+          FOREIGN KEY (programId) REFERENCES programs(id) ON DELETE CASCADE
+        )`,
+      campus_facilities: `
+        CREATE TABLE IF NOT EXISTS campus_facilities (
+          id VARCHAR(255) PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          description TEXT,
+          image TEXT,
+          features TEXT
+        )`,
+      hostel_details: `
+        CREATE TABLE IF NOT EXISTS hostel_details (
+          id VARCHAR(255) PRIMARY KEY,
+          title VARCHAR(255),
+          description TEXT,
+          amenities TEXT,
+          wardenName VARCHAR(255),
+          wardenPhone VARCHAR(255),
+          ruleBookPdf TEXT
+        )`,
+      sna_details: `
+        CREATE TABLE IF NOT EXISTS sna_details (
+          id VARCHAR(255) PRIMARY KEY,
+          objectives TEXT,
+          executiveCommittee TEXT,
+          functionalCommittees TEXT,
+          annualEvents TEXT
+        )`,
+      student_supports: `
+        CREATE TABLE IF NOT EXISTS student_supports (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          icon VARCHAR(255),
+          color VARCHAR(255),
+          iconBg VARCHAR(255),
+          iconColor VARCHAR(255)
         )`
     };
 
@@ -331,6 +404,8 @@ const migrate = async () => {
       { table: 'departments', column: 'departmentId', query: 'ALTER TABLE departments ADD COLUMN departmentId VARCHAR(255) UNIQUE AFTER id' },
       { table: 'departments', column: 'shortName', query: 'ALTER TABLE departments ADD COLUMN shortName VARCHAR(100) AFTER name' },
       { table: 'departments', column: 'sortOrder', query: 'ALTER TABLE departments ADD COLUMN sortOrder INT DEFAULT 0 AFTER clinicalHours' },
+      { table: 'departments', column: 'hod', query: 'ALTER TABLE departments ADD COLUMN hod VARCHAR(255) AFTER clinicalHours' },
+      { table: 'departments', column: 'facilities', query: 'ALTER TABLE departments ADD COLUMN facilities TEXT AFTER hod' },
 
       // hero_slides table
       { table: 'hero_slides', column: 'tag', query: 'ALTER TABLE hero_slides ADD COLUMN tag VARCHAR(100) DEFAULT \'main\' AFTER imageUrl' },
@@ -345,6 +420,12 @@ const migrate = async () => {
 
       // admins table (NEW migration)
       { table: 'admins', column: 'updatedAt', query: 'ALTER TABLE admins ADD COLUMN updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
+
+      // administration_members — section column
+      { table: 'administration_members', column: 'section', query: "ALTER TABLE administration_members ADD COLUMN section VARCHAR(50) DEFAULT 'director' AFTER designation" },
+
+      // administration_members — role column
+      { table: 'administration_members', column: 'role', query: 'ALTER TABLE administration_members ADD COLUMN role VARCHAR(255) AFTER section' },
     ];
 
     for (const m of migrations) {
@@ -382,6 +463,22 @@ const migrate = async () => {
     console.log('⏳ Cleaning up redundant settings...');
     await pool.query("DELETE FROM settings WHERE group_name = 'About Us'");
     console.log('✅ Redundant settings removed.');
+
+    // Backfill section column for existing administration_members rows
+    try {
+      const [sectionCol]: any = await pool.query("SHOW COLUMNS FROM administration_members LIKE 'section'");
+      if (sectionCol.length > 0) {
+        await pool.query("UPDATE administration_members SET section = 'director'  WHERE id = 'director'  AND (section IS NULL OR section = 'director')");
+        await pool.query("UPDATE administration_members SET section = 'principal' WHERE id = 'principal' AND (section IS NULL OR section = 'director')");
+        await pool.query("UPDATE administration_members SET section = 'registrar' WHERE id = 'registrar' AND (section IS NULL OR section = 'director')");
+        // All others default to 'academic-staff' if they still have the default 'director' and are not core
+        await pool.query("UPDATE administration_members SET section = 'academic-staff' WHERE id NOT IN ('director','principal','registrar') AND section = 'director'");
+        console.log('✅ Section backfill for administration_members complete.');
+      }
+    } catch (err: any) {
+      console.warn('⚠️  Could not backfill section column:', err.message);
+    }
+
 
     console.log('🚀 Database migration complete!');
     process.exit(0);

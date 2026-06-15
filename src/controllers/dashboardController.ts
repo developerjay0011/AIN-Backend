@@ -1,43 +1,53 @@
 import pool from '../config/db.js';
+import { Request, Response } from 'express';
 import { ApiResponse } from '../utils/ApiResponse.js';
-import { Request, Response, NextFunction } from 'express';
 
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
   // Total Counts for Primary Modules
   const [noticesCount] = await pool.query('SELECT COUNT(*) as count FROM notices');
-  const [staffCount] = await pool.query('SELECT COUNT(*) as count FROM staff');
+  const [staffCount] = await pool.query('SELECT COUNT(DISTINCT name) as count FROM (SELECT name FROM staff UNION SELECT name FROM administration_members) as all_staff');
   const [achievementsCount] = await pool.query('SELECT COUNT(*) as count FROM achievements');
-  
+
   // Aggregated Media Count (Images, Videos, and Documents)
   // We count unique non-null file reference fields across all relevant tables
   const mediaTables = [
-      { table: 'gallery_media',     column: 'url',         hasCreatedAt: false },
-      { table: 'staff',             column: 'image',       hasCreatedAt: true  },
-      { table: 'hero_slides',       column: 'imageUrl',    hasCreatedAt: true  },
-      { table: 'toppers',           column: 'imageUrl',    hasCreatedAt: true  },
-      { table: 'alumni_milestones', column: 'imageUrl',    hasCreatedAt: true  },
-      { table: 'notice_links',      column: 'url',         hasCreatedAt: false },
-      { table: 'aqars',             column: 'documentUrl', hasCreatedAt: true  }
+    { table: 'gallery_media', column: 'url', hasCreatedAt: true },
+    { table: 'events', column: 'coverImage', hasCreatedAt: true },
+    { table: 'gallery_albums', column: 'coverImage', hasCreatedAt: true },
+    { table: 'hero_slides', column: 'imageUrl', hasCreatedAt: true },
+    { table: 'staff', column: 'image', hasCreatedAt: true },
+    { table: 'toppers', column: 'imageUrl', hasCreatedAt: true },
+    { table: 'alumni_milestones', column: 'imageUrl', hasCreatedAt: true },
+    { table: 'notice_links', column: 'url', hasCreatedAt: false },
+    { table: 'aqars', column: 'documentUrl', hasCreatedAt: true },
+    { table: 'administration_members', column: 'imageUrl', hasCreatedAt: true },
+    { table: 'courses', column: 'image', hasCreatedAt: true }
   ];
 
   let totalMediaCount = 0;
   let weeklyMediaTrend = 0;
 
   for (const item of mediaTables) {
-      const [total] = await pool.query(`SELECT COUNT(*) as count FROM ${item.table} WHERE ${item.column} IS NOT NULL AND ${item.column} != ''`);
-      totalMediaCount += (total as any)[0].count;
+    const [total] = await pool.query(`SELECT COUNT(*) as count FROM ${item.table} WHERE ${item.column} IS NOT NULL AND ${item.column} != ''`);
+    totalMediaCount += (total as any)[0].count;
 
-      if (item.hasCreatedAt) {
-          const [trend] = await pool.query(`SELECT COUNT(*) as count FROM ${item.table} WHERE createdAt >= NOW() - INTERVAL 7 DAY AND ${item.column} IS NOT NULL AND ${item.column} != ''`);
-          weeklyMediaTrend += (trend as any)[0].count;
-      }
+    if (item.hasCreatedAt) {
+      const [trend] = await pool.query(`SELECT COUNT(*) as count FROM ${item.table} WHERE createdAt >= NOW() - INTERVAL 7 DAY AND ${item.column} IS NOT NULL AND ${item.column} != ''`);
+      weeklyMediaTrend += (trend as any)[0].count;
+    }
   }
 
   // Trends (Last 7 Days) for other modules
   const [newNotices] = await pool.query("SELECT COUNT(*) as count FROM notices WHERE createdAt >= NOW() - INTERVAL 7 DAY");
-  const [newStaff] = await pool.query("SELECT COUNT(*) as count FROM staff WHERE createdAt >= NOW() - INTERVAL 7 DAY");
+  const [newStaff] = await pool.query(`
+    SELECT COUNT(DISTINCT name) as count FROM (
+      SELECT name FROM staff WHERE createdAt >= NOW() - INTERVAL 7 DAY
+      UNION
+      SELECT name FROM administration_members WHERE createdAt >= NOW() - INTERVAL 7 DAY
+    ) as new_staff
+  `);
   const [newAchievements] = await pool.query("SELECT COUNT(*) as count FROM achievements WHERE createdAt >= NOW() - INTERVAL 7 DAY");
 
   res.json(ApiResponse.success({

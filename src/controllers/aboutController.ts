@@ -21,19 +21,31 @@ type LeadershipKey = keyof typeof LEADERSHIP_IDS;
  * Leadership messages are sourced from administration_members (single source of truth).
  */
 export const getAboutContent = asyncHandler(async (req: Request, res: Response) => {
-  // Fetch milestones from settings
-  const [milestoneRows] = await pool.query(
-    `SELECT key_name, value, type FROM settings WHERE key_name = 'ABOUT_MILESTONES'`
+  // Fetch milestones and new text content from settings
+  const settingKeys = [
+    'ABOUT_MILESTONES', 'ABOUT_ANTHEM', 'ABOUT_OUR_STORY', 
+    'ABOUT_OVERVIEW', 'ABOUT_VISION', 'ABOUT_MISSION', 'ABOUT_OBJECTIVES'
+  ];
+  const placeholders = settingKeys.map(() => '?').join(',');
+  const [settingRows] = await pool.query(
+    `SELECT key_name, value, type FROM settings WHERE key_name IN (${placeholders})`,
+    settingKeys
   );
 
   const content: Record<string, any> = {
     ABOUT_MILESTONES: [],
+    ABOUT_ANTHEM: '',
+    ABOUT_OUR_STORY: '',
+    ABOUT_OVERVIEW: '',
+    ABOUT_VISION: '',
+    ABOUT_MISSION: '',
+    ABOUT_OBJECTIVES: '',
     DIRECTOR_MESSAGE: { name: '', image: null, quote: '', body: '' },
     PRINCIPAL_MESSAGE: { name: '', image: null, quote: '', body: '' },
     REGISTRAR_MESSAGE: { name: '', image: null, quote: '', body: '' },
   };
 
-  (milestoneRows as any[]).forEach(row => {
+  (settingRows as any[]).forEach(row => {
     let value = row.value;
     if (row.type === 'json' || (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{')))) {
       try { value = JSON.parse(row.value); } catch { value = row.value; }
@@ -94,12 +106,29 @@ export const updateAboutContent = asyncHandler(async (req: Request, res: Respons
 
   const sanitizedContent = sanitizeDeep(content);
 
-  // ── Milestones: write to settings ────────────────────────────────────────
-  if (sanitizedContent['ABOUT_MILESTONES'] !== undefined) {
-    await pool.query(
-      'UPDATE settings SET value = ?, updatedAt = CURRENT_TIMESTAMP WHERE key_name = ?',
-      [JSON.stringify(sanitizedContent['ABOUT_MILESTONES']), 'ABOUT_MILESTONES']
-    );
+  // ── Text Content & Milestones: write to settings ────────────────────────────────────────
+  const settingKeys = [
+    'ABOUT_MILESTONES', 'ABOUT_ANTHEM', 'ABOUT_OUR_STORY', 
+    'ABOUT_OVERVIEW', 'ABOUT_VISION', 'ABOUT_MISSION', 'ABOUT_OBJECTIVES'
+  ];
+
+  for (const key of settingKeys) {
+    if (sanitizedContent[key] !== undefined) {
+      const val = typeof sanitizedContent[key] === 'object' ? JSON.stringify(sanitizedContent[key]) : sanitizedContent[key];
+      const type = typeof sanitizedContent[key] === 'object' ? 'json' : 'text';
+      
+      const [updateResult]: any = await pool.query(
+        'UPDATE settings SET value = ?, type = ?, updatedAt = CURRENT_TIMESTAMP WHERE key_name = ?',
+        [val, type, key]
+      );
+
+      if (updateResult.affectedRows === 0) {
+        await pool.query(
+          'INSERT INTO settings (key_name, value, type) VALUES (?, ?, ?)',
+          [key, val, type]
+        );
+      }
+    }
   }
 
   // ── Leadership messages: write to administration_members ──────────────────

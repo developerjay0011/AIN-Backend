@@ -17,14 +17,7 @@
  */
 export function sanitizeString(value: unknown): string {
     if (typeof value !== 'string') return value as any;
-    return value
-        .trim()
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-
+    return value.trim();
 }
 
 /**
@@ -50,12 +43,12 @@ export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
  */
 export function formatDateToYYYYMMDD(dateStr: any): string | null {
     if (!dateStr || dateStr === 'null' || dateStr === 'undefined') return null;
-    
+
     // Check if it's already in YYYY-MM-DD format
     if (/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr))) {
         return String(dateStr);
     }
-    
+
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) {
         // Attempt parsing month name format: "Jan 15, 2025" or "15 Jan 2025"
@@ -65,7 +58,7 @@ export function formatDateToYYYYMMDD(dateStr: any): string | null {
             january: '01', february: '02', march: '03', april: '04', june: '06',
             july: '07', august: '08', september: '09', october: '10', november: '11', december: '12'
         };
-        
+
         // Pattern 1: "Jan 15, 2025" or "Jan 15 2025"
         const match1 = String(dateStr).match(/([a-zA-Z]+)\s+(\d{1,2}),?\s+(\d{4})/);
         if (match1) {
@@ -87,10 +80,10 @@ export function formatDateToYYYYMMDD(dateStr: any): string | null {
                 return `${yr}-${mon}-${day}`;
             }
         }
-        
+
         return null;
     }
-    
+
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');

@@ -18,7 +18,7 @@ export const getAllNotices = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const handleNoticePost = asyncHandler(async (req: Request, res: Response) => {
-  let { id, title, date, type, description, critical, links } = sanitizeObject(req.body);
+  let { id, title, date, type, description, critical, links, expiryDate } = sanitizeObject(req.body);
   date = formatDateToYYYYMMDD(date);
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
@@ -29,8 +29,8 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
 
     const noticeId = `NOT-${Date.now()}`;
     await pool.query(
-      'INSERT INTO notices (id, title, date, type, description, critical) VALUES (?, ?, ?, ?, ?, ?)',
-      [noticeId, title, date, type, description, critical === 'true' || critical === true]
+      'INSERT INTO notices (id, title, date, type, description, critical, expiryDate) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [noticeId, title, date, type, description, critical === 'true' || critical === true, expiryDate || '2027-01-01']
     );
 
     // Handle existing links from JSON string/array
@@ -73,9 +73,10 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
         type = COALESCE(?, type), 
         description = COALESCE(?, description), 
         critical = ?,
+        expiryDate = COALESCE(?, expiryDate),
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?`,
-      [title || null, date || null, type || null, description || null, critical === 'true' || critical === true, id]
+      [title || null, date || null, type || null, description || null, critical === 'true' || critical === true, expiryDate || null, id]
     );
 
     // Smart Link Handling during update

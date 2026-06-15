@@ -10,26 +10,36 @@ import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
  */
 export const getAdministrationMembers = asyncHandler(async (req: Request, res: Response) => {
   const [rows]: any = await pool.query('SELECT * FROM administration_members ORDER BY sortOrder ASC');
-  const mappedRows = rows.map((r: any) => ({
-    ...r,
-    role: r.designation || r.role
-  }));
-  res.json(ApiResponse.success(formatDataUrls(mappedRows, ['imageUrl']), 'Administration members fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(rows, ['imageUrl']), 'Administration members fetched successfully'));
 });
 
 /**
  * Create or Update Administration Member
- * Supports optional staffId linkage: when staffId is provided on create,
- * missing detail fields are resolved from the staff table.
+ * role      = preset category (e.g. "Associate Professor") — used for staff grouping
+ * designation = free-text title (e.g. "M.Sc Nursing, AIN Guwahati")
  */
 export const handleAdministrationMemberPost = asyncHandler(async (req: Request, res: Response) => {
-  let { id, name, role, designation, qualification, experience, specialization, quote, description, staffId } = sanitizeObject(req.body);
+  let { id, name, role, designation, qualification, experience, specialization, quote, description, staffId, section } = sanitizeObject(req.body);
   const uploadedImage = req.file ? getUploadPath(req.file) : null;
   const passedImageUrl = req.body.imageUrl || null;
-  const resolvedDesignation = designation || role || null;
+
+  const VALID_SECTIONS = ['director', 'principal', 'registrar', 'academic-staff', 'admin-staff'];
+  const resolvedSection = VALID_SECTIONS.includes(section) ? section : 'academic-staff';
 
   if (id === '0' || !id || id === 'null' || id === 0) {
     // ── CREATE ─────────────────────────────────────────────────────────────
+    // Enforce single-member constraint for core sections
+    const CORE_SECTIONS = ['director', 'principal', 'registrar'];
+    if (CORE_SECTIONS.includes(resolvedSection)) {
+      const [existing]: any = await pool.query(
+        'SELECT id FROM administration_members WHERE section = ? LIMIT 1',
+        [resolvedSection]
+      );
+      if (existing.length > 0) {
+        throw new ApiError(409, `A ${resolvedSection} profile already exists. Only one profile is allowed per core section. Please edit the existing profile instead.`);
+      }
+    }
+
     // If a staffId was provided, resolve missing fields from the staff table
     let resolvedImageUrl = uploadedImage || passedImageUrl || null;
 
@@ -37,23 +47,18 @@ export const handleAdministrationMemberPost = asyncHandler(async (req: Request, 
       const [staffRows]: any = await pool.query('SELECT * FROM staff WHERE id = ?', [staffId]);
       if (staffRows.length > 0) {
         const staff = staffRows[0];
-        // Only fill a field if the caller left it blank
         name          = name          || staff.name          || null;
         designation   = designation   || staff.designation   || null;
         qualification = qualification || staff.qualification || null;
         experience    = experience    || staff.experience    || null;
         specialization = specialization || staff.specialization || null;
-        
-        // Use staff image only if no image was explicitly uploaded
         if (!resolvedImageUrl && staff.image) {
           resolvedImageUrl = staff.image;
         }
       }
     }
 
-    const finalDesignation = designation || resolvedDesignation;
-
-    if (!name || !finalDesignation) {
+    if (!name || !designation) {
       throw new ApiError(400, 'Name and Designation are required');
     }
 
@@ -63,12 +68,14 @@ export const handleAdministrationMemberPost = asyncHandler(async (req: Request, 
 
     await pool.query(
       `INSERT INTO administration_members
-         (id, name, designation, imageUrl, qualification, experience, specialization, quote, description, sortOrder, isLinked, staffId)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, name, designation, section, role, imageUrl, qualification, experience, specialization, quote, description, sortOrder, isLinked, staffId)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newId,
         name,
-        finalDesignation,
+        designation,
+        resolvedSection,
+        role         || null,
         resolvedImageUrl,
         qualification  || '',
         experience     || '',
@@ -82,8 +89,7 @@ export const handleAdministrationMemberPost = asyncHandler(async (req: Request, 
     );
 
     const [newMem]: any = await pool.query('SELECT * FROM administration_members WHERE id = ?', [newId]);
-    const responseData = { ...newMem[0], role: newMem[0].designation || newMem[0].role };
-    return res.status(201).json(ApiResponse.success(formatDataUrls(responseData, ['imageUrl']), 'Administration member created successfully'));
+    return res.status(201).json(ApiResponse.success(formatDataUrls(newMem[0], ['imageUrl']), 'Administration member created successfully'));
 
   } else {
     // ── UPDATE ─────────────────────────────────────────────────────────────
@@ -98,7 +104,9 @@ export const handleAdministrationMemberPost = asyncHandler(async (req: Request, 
     await pool.query(
       `UPDATE administration_members 
        SET name           = COALESCE(?, name), 
-           designation    = COALESCE(?, designation), 
+           designation    = COALESCE(?, designation),
+           section        = COALESCE(?, section),
+           role           = COALESCE(?, role),
            imageUrl       = COALESCE(?, imageUrl), 
            qualification  = COALESCE(?, qualification), 
            experience     = COALESCE(?, experience), 
@@ -108,11 +116,10 @@ export const handleAdministrationMemberPost = asyncHandler(async (req: Request, 
            staffId        = ?,
            updatedAt      = CURRENT_TIMESTAMP 
        WHERE id = ?`,
-      [name, resolvedDesignation, imageUrl, qualification, experience, specialization, quote, description, staffId || null, id]
+      [name, designation, resolvedSection, role || null, imageUrl, qualification, experience, specialization, quote, description, staffId || null, id]
     );
 
-    // For linked members (director/principal/registrar): mirror key fields to the linked staff row.
-    // administration_members is now the single source of truth — staff stays in sync.
+    // For linked members: mirror key fields to the linked staff row.
     if (isLinked) {
       const [updatedAdmin]: any = await pool.query(
         'SELECT staffId, name, imageUrl, qualification, experience, specialization, designation FROM administration_members WHERE id = ?',
@@ -136,8 +143,7 @@ export const handleAdministrationMemberPost = asyncHandler(async (req: Request, 
     }
 
     const [updatedMem]: any = await pool.query('SELECT * FROM administration_members WHERE id = ?', [id]);
-    const responseData = { ...updatedMem[0], role: updatedMem[0].designation || updatedMem[0].role };
-    return res.json(ApiResponse.success(formatDataUrls(responseData, ['imageUrl']), 'Administration member updated successfully'));
+    return res.json(ApiResponse.success(formatDataUrls(updatedMem[0], ['imageUrl']), 'Administration member updated successfully'));
   }
 });
 
@@ -164,7 +170,7 @@ export const deleteAdministrationMember = asyncHandler(async (req: Request, res:
  * Update sorting order
  */
 export const updateAdministrationSorting = asyncHandler(async (req: Request, res: Response) => {
-  const { orders } = req.body; // Array of { id, sortOrder }
+  const { orders } = req.body;
   if (!Array.isArray(orders)) {
     throw new ApiError(400, 'Invalid sorting order payload');
   }

@@ -178,3 +178,113 @@ export const deletePlacementHighlight = asyncHandler(async (req: Request, res: R
   }
   res.json(ApiResponse.success(null, 'Placement highlight deleted successfully'));
 });
+
+/**
+ * Get all Placement Collaborations & MoUs
+ */
+export const getPlacementCollaborations = asyncHandler(async (req: Request, res: Response) => {
+  const [rows] = await pool.query('SELECT * FROM placement_collaborations ORDER BY name ASC');
+  res.json(ApiResponse.success(formatDataUrls(rows, ['logoUrl']), 'Placement collaborations fetched successfully'));
+});
+
+/**
+ * Create or Update Placement Collaboration
+ */
+export const handlePlacementCollaborationPost = asyncHandler(async (req: Request, res: Response) => {
+  let { id, name } = sanitizeObject(req.body);
+  const logoUrl = req.file ? getUploadPath(req.file) : (req.body.logoUrl || null);
+
+  if (id === '0' || !id || id === 0) {
+    if (!name) {
+      throw new ApiError(400, 'Name is required');
+    }
+    const newId = `PC-${Date.now()}`;
+
+    await pool.query(
+      'INSERT INTO placement_collaborations (id, name, logoUrl) VALUES (?, ?, ?)',
+      [newId, name, logoUrl]
+    );
+    const [newCol] = await pool.query('SELECT * FROM placement_collaborations WHERE id = ?', [newId]);
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newCol as any)[0], ['logoUrl']), 'Placement collaboration created successfully'));
+  } else {
+    const [existing]: any = await pool.query('SELECT * FROM placement_collaborations WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      throw new ApiError(404, 'Placement collaboration not found');
+    }
+    await pool.query(
+      'UPDATE placement_collaborations SET name = COALESCE(?, name), logoUrl = COALESCE(?, logoUrl), updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [name, logoUrl, id]
+    );
+    const [updatedCol] = await pool.query('SELECT * FROM placement_collaborations WHERE id = ?', [id]);
+    return res.json(ApiResponse.success(formatDataUrls((updatedCol as any)[0], ['logoUrl']), 'Placement collaboration updated successfully'));
+  }
+});
+
+/**
+ * Delete Placement Collaboration
+ */
+export const deletePlacementCollaboration = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const [result] = await pool.query('DELETE FROM placement_collaborations WHERE id = ?', [id]);
+  if ((result as any).affectedRows === 0) {
+    throw new ApiError(404, 'Placement collaboration not found');
+  }
+  res.json(ApiResponse.success(null, 'Placement collaboration deleted successfully'));
+});
+
+/**
+ * Get all Placement Resources (Brochures & Policies)
+ */
+export const getPlacementResources = asyncHandler(async (req: Request, res: Response) => {
+  const [rows] = await pool.query('SELECT * FROM placement_resources ORDER BY type ASC, year DESC, title ASC');
+  res.json(ApiResponse.success(formatDataUrls(rows, ['fileUrl']), 'Placement resources fetched successfully'));
+});
+
+/**
+ * Create or Update Placement Resource
+ */
+export const handlePlacementResourcePost = asyncHandler(async (req: Request, res: Response) => {
+  let { id, title, description, type, year } = sanitizeObject(req.body);
+  const fileUrl = req.file ? getUploadPath(req.file) : (req.body.fileUrl || null);
+
+  if (id === '0' || !id || id === 0) {
+    if (!title || !type) {
+      throw new ApiError(400, 'Title and Type are required');
+    }
+    if (!fileUrl) {
+      throw new ApiError(400, 'Document file is required');
+    }
+    const newId = `PR-${Date.now()}`;
+
+    await pool.query(
+      'INSERT INTO placement_resources (id, title, description, fileUrl, type, year) VALUES (?, ?, ?, ?, ?, ?)',
+      [newId, title, description || '', fileUrl, type, year ? parseInt(year) : null]
+    );
+    const [newRes] = await pool.query('SELECT * FROM placement_resources WHERE id = ?', [newId]);
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newRes as any)[0], ['fileUrl']), 'Placement resource created successfully'));
+  } else {
+    const [existing]: any = await pool.query('SELECT * FROM placement_resources WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      throw new ApiError(404, 'Placement resource not found');
+    }
+    await pool.query(
+      'UPDATE placement_resources SET title = COALESCE(?, title), description = COALESCE(?, description), fileUrl = COALESCE(?, fileUrl), type = COALESCE(?, type), year = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [title, description, fileUrl, type, year ? parseInt(year) : null, id]
+    );
+    const [updatedRes] = await pool.query('SELECT * FROM placement_resources WHERE id = ?', [id]);
+    return res.json(ApiResponse.success(formatDataUrls((updatedRes as any)[0], ['fileUrl']), 'Placement resource updated successfully'));
+  }
+});
+
+/**
+ * Delete Placement Resource
+ */
+export const deletePlacementResource = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const [result] = await pool.query('DELETE FROM placement_resources WHERE id = ?', [id]);
+  if ((result as any).affectedRows === 0) {
+    throw new ApiError(404, 'Placement resource not found');
+  }
+  res.json(ApiResponse.success(null, 'Placement resource deleted successfully'));
+});
+

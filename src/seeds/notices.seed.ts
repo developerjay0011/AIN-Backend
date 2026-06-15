@@ -55,8 +55,8 @@ export const seedNotices = async () => {
     console.log('📢 Seeding Notices...');
     for (const [id, title, desc, date, type, crit] of notices) {
         await pool.query(
-            'REPLACE INTO notices (id, title, description, date, type, critical) VALUES (?, ?, ?, ?, ?, ?)',
-            [id, title, desc, date, type, crit]
+            'REPLACE INTO notices (id, title, description, date, type, critical, expiryDate) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [id, title, desc, date, type, crit, '2027-01-01']
         );
     }
 

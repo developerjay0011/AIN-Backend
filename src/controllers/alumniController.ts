@@ -236,3 +236,218 @@ export const deleteExecutive = asyncHandler(async (req: Request, res: Response) 
   }
   res.json(ApiResponse.success(null, 'Executive member deleted successfully'));
 });
+
+/**
+ * Get all Alumni Announcements
+ */
+export const getAlumniAnnouncements = asyncHandler(async (req: Request, res: Response) => {
+  const [rows] = await pool.query('SELECT * FROM alumni_announcements ORDER BY sortOrder ASC, date DESC');
+  res.json(ApiResponse.success(rows, 'Alumni announcements fetched successfully'));
+});
+
+/**
+ * Create or Update Alumni Announcement
+ */
+export const handleAnnouncementPost = asyncHandler(async (req: Request, res: Response) => {
+  const { id, title, date, type, description, color, sortOrder, expiryDate } = sanitizeObject(req.body);
+
+  if (id === '0' || !id || id === 0) {
+    if (!title || !date || !type) {
+      throw new ApiError(400, 'Title, Date, and Type are required');
+    }
+    const newId = `ANN-${Date.now()}`;
+    const nextSortOrder = sortOrder !== undefined ? parseInt(sortOrder) : 99;
+    await pool.query(
+      'INSERT INTO alumni_announcements (id, title, date, type, description, color, sortOrder, expiryDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [newId, title, date, type, description || null, color || 'blue', nextSortOrder, expiryDate || '2027-01-01']
+    );
+    const [newAnn] = await pool.query('SELECT * FROM alumni_announcements WHERE id = ?', [newId]);
+    return res.status(201).json(ApiResponse.success((newAnn as any)[0], 'Announcement created successfully'));
+  } else {
+    const [existing]: any = await pool.query('SELECT * FROM alumni_announcements WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      throw new ApiError(404, 'Announcement not found');
+    }
+    const nextSortOrder = sortOrder !== undefined ? parseInt(sortOrder) : (existing[0].sortOrder || 99);
+    await pool.query(
+      'UPDATE alumni_announcements SET title = COALESCE(?, title), date = COALESCE(?, date), type = COALESCE(?, type), description = COALESCE(?, description), color = COALESCE(?, color), sortOrder = ?, expiryDate = COALESCE(?, expiryDate), updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [title, date, type, description, color, nextSortOrder, expiryDate || null, id]
+    );
+    const [updatedAnn] = await pool.query('SELECT * FROM alumni_announcements WHERE id = ?', [id]);
+    return res.json(ApiResponse.success((updatedAnn as any)[0], 'Announcement updated successfully'));
+  }
+});
+
+/**
+ * Delete Alumni Announcement
+ */
+export const deleteAnnouncement = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const [result] = await pool.query('DELETE FROM alumni_announcements WHERE id = ?', [id]);
+  if ((result as any).affectedRows === 0) {
+    throw new ApiError(404, 'Announcement not found');
+  }
+  res.json(ApiResponse.success(null, 'Announcement deleted successfully'));
+});
+
+/**
+ * Get all Alumni News
+ */
+export const getAlumniNews = asyncHandler(async (req: Request, res: Response) => {
+  const [rows] = await pool.query('SELECT * FROM alumni_news ORDER BY sortOrder ASC, date DESC');
+  res.json(ApiResponse.success(formatDataUrls(rows, ['imageUrl']), 'Alumni news fetched successfully'));
+});
+
+/**
+ * Create or Update Alumni News Story
+ */
+export const handleNewsPost = asyncHandler(async (req: Request, res: Response) => {
+  const { id, title, date, author, description, sortOrder, expiryDate } = sanitizeObject(req.body);
+  const imageUrl = req.file ? getUploadPath(req.file) : (req.body.imageUrl || null);
+
+  if (id === '0' || !id || id === 0) {
+    if (!title || !date || !author) {
+      throw new ApiError(400, 'Title, Date, and Author are required');
+    }
+    const newId = `NWS-${Date.now()}`;
+    const nextSortOrder = sortOrder !== undefined ? parseInt(sortOrder) : 99;
+    await pool.query(
+      'INSERT INTO alumni_news (id, title, date, author, description, imageUrl, sortOrder, expiryDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [newId, title, date, author, description || null, imageUrl, nextSortOrder, expiryDate || '2027-01-01']
+    );
+    const [newNews] = await pool.query('SELECT * FROM alumni_news WHERE id = ?', [newId]);
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newNews as any)[0], ['imageUrl']), 'News story created successfully'));
+  } else {
+    const [existing]: any = await pool.query('SELECT * FROM alumni_news WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      throw new ApiError(404, 'News story not found');
+    }
+    const nextSortOrder = sortOrder !== undefined ? parseInt(sortOrder) : (existing[0].sortOrder || 99);
+    await pool.query(
+      'UPDATE alumni_news SET title = COALESCE(?, title), date = COALESCE(?, date), author = COALESCE(?, author), description = COALESCE(?, description), imageUrl = COALESCE(?, imageUrl), sortOrder = ?, expiryDate = COALESCE(?, expiryDate), updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [title, date, author, description, imageUrl, nextSortOrder, expiryDate || null, id]
+    );
+    const [updatedNews] = await pool.query('SELECT * FROM alumni_news WHERE id = ?', [id]);
+    return res.json(ApiResponse.success(formatDataUrls((updatedNews as any)[0], ['imageUrl']), 'News story updated successfully'));
+  }
+});
+
+/**
+ * Delete Alumni News Story
+ */
+export const deleteNews = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const [result] = await pool.query('DELETE FROM alumni_news WHERE id = ?', [id]);
+  if ((result as any).affectedRows === 0) {
+    throw new ApiError(404, 'News story not found');
+  }
+  res.json(ApiResponse.success(null, 'News story deleted successfully'));
+});
+
+/**
+ * Get all Alumni Committee Members
+ */
+export const getAlumniCommittee = asyncHandler(async (req: Request, res: Response) => {
+  const [rows] = await pool.query('SELECT * FROM alumni_committee_members ORDER BY sortOrder ASC, name ASC');
+  res.json(ApiResponse.success(formatDataUrls(rows, ['imageUrl']), 'Alumni committee fetched successfully'));
+});
+
+/**
+ * Create or Update Alumni Committee Member
+ */
+export const handleCommitteePost = asyncHandler(async (req: Request, res: Response) => {
+  const { id, name, designation, batch, location, linkedinUrl, email, sortOrder } = sanitizeObject(req.body);
+  const imageUrl = req.file ? getUploadPath(req.file) : (req.body.imageUrl || null);
+
+  if (id === '0' || !id || id === 0) {
+    if (!name || !designation || !batch || !location) {
+      throw new ApiError(400, 'Name, Designation, Batch, and Location are required');
+    }
+    const newId = `COM-${Date.now()}`;
+    const nextSortOrder = sortOrder !== undefined ? parseInt(sortOrder) : 99;
+    await pool.query(
+      'INSERT INTO alumni_committee_members (id, name, designation, batch, location, imageUrl, linkedinUrl, email, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [newId, name, designation, batch, location, imageUrl, linkedinUrl || null, email || null, nextSortOrder]
+    );
+    const [newMem] = await pool.query('SELECT * FROM alumni_committee_members WHERE id = ?', [newId]);
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newMem as any)[0], ['imageUrl']), 'Committee member created successfully'));
+  } else {
+    const [existing]: any = await pool.query('SELECT * FROM alumni_committee_members WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      throw new ApiError(404, 'Committee member not found');
+    }
+    const nextSortOrder = sortOrder !== undefined ? parseInt(sortOrder) : (existing[0].sortOrder || 99);
+    await pool.query(
+      'UPDATE alumni_committee_members SET name = COALESCE(?, name), designation = COALESCE(?, designation), batch = COALESCE(?, batch), location = COALESCE(?, location), imageUrl = COALESCE(?, imageUrl), linkedinUrl = COALESCE(?, linkedinUrl), email = COALESCE(?, email), sortOrder = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [name, designation, batch, location, imageUrl, linkedinUrl, email, nextSortOrder, id]
+    );
+    const [updatedMem] = await pool.query('SELECT * FROM alumni_committee_members WHERE id = ?', [id]);
+    return res.json(ApiResponse.success(formatDataUrls((updatedMem as any)[0], ['imageUrl']), 'Committee member updated successfully'));
+  }
+});
+
+/**
+ * Delete Alumni Committee Member
+ */
+export const deleteCommitteeMember = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const [result] = await pool.query('DELETE FROM alumni_committee_members WHERE id = ?', [id]);
+  if ((result as any).affectedRows === 0) {
+    throw new ApiError(404, 'Committee member not found');
+  }
+  res.json(ApiResponse.success(null, 'Committee member deleted successfully'));
+});
+
+/**
+ * Get all Alumni Constitution Articles
+ */
+export const getAlumniConstitution = asyncHandler(async (req: Request, res: Response) => {
+  const [rows] = await pool.query('SELECT * FROM alumni_constitution_articles ORDER BY sortOrder ASC, sectionId ASC');
+  res.json(ApiResponse.success(rows, 'Alumni constitution fetched successfully'));
+});
+
+/**
+ * Create or Update Alumni Constitution Article
+ */
+export const handleConstitutionPost = asyncHandler(async (req: Request, res: Response) => {
+  const { id, sectionId, title, icon, content, sortOrder } = sanitizeObject(req.body);
+
+  if (id === '0' || !id || id === 0) {
+    if (!sectionId || !title || !content) {
+      throw new ApiError(400, 'Section ID, Title, and Content are required');
+    }
+    const newId = `ART-${Date.now()}`;
+    const nextSortOrder = sortOrder !== undefined ? parseInt(sortOrder) : 99;
+    await pool.query(
+      'INSERT INTO alumni_constitution_articles (id, sectionId, title, icon, content, sortOrder) VALUES (?, ?, ?, ?, ?, ?)',
+      [newId, sectionId, title, icon || 'FileText', content, nextSortOrder]
+    );
+    const [newArt] = await pool.query('SELECT * FROM alumni_constitution_articles WHERE id = ?', [newId]);
+    return res.status(201).json(ApiResponse.success((newArt as any)[0], 'Constitution article created successfully'));
+  } else {
+    const [existing]: any = await pool.query('SELECT * FROM alumni_constitution_articles WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      throw new ApiError(404, 'Constitution article not found');
+    }
+    const nextSortOrder = sortOrder !== undefined ? parseInt(sortOrder) : (existing[0].sortOrder || 99);
+    await pool.query(
+      'UPDATE alumni_constitution_articles SET sectionId = COALESCE(?, sectionId), title = COALESCE(?, title), icon = COALESCE(?, icon), content = COALESCE(?, content), sortOrder = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [sectionId, title, icon, content, nextSortOrder, id]
+    );
+    const [updatedArt] = await pool.query('SELECT * FROM alumni_constitution_articles WHERE id = ?', [id]);
+    return res.json(ApiResponse.success((updatedArt as any)[0], 'Constitution article updated successfully'));
+  }
+});
+
+/**
+ * Delete Alumni Constitution Article
+ */
+export const deleteConstitutionArticle = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const [result] = await pool.query('DELETE FROM alumni_constitution_articles WHERE id = ?', [id]);
+  if ((result as any).affectedRows === 0) {
+    throw new ApiError(404, 'Constitution article not found');
+  }
+  res.json(ApiResponse.success(null, 'Constitution article deleted successfully'));
+});
+

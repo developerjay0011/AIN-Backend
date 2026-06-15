@@ -2,7 +2,7 @@ import pool from '../config/db.js';
 
 export const seedStaff = async () => {
     const records = [
-        ['STF-1775881000001', 'Prof. Kabita Baishya', 'Officiating Principal', 'teaching', '/uploads/images/staff/1775884583295-935427351.jpg', 'M.Sc Nursing, Ph.D', '25+ Years', 'Medical Surgical Nursing', ''],
+        ['STF-1775881000001', 'Prof. Kabita Baishya', 'Principal', 'teaching', '/uploads/images/staff/1775884583295-935427351.jpg', 'M.Sc Nursing, Ph.D', '25+ Years', 'Medical Surgical Nursing', ''],
         ['STF-1775881000002', 'Lt Col (Mrs.) P. Singh', 'Vice Principal', 'teaching', '/uploads/images/staff/staff_2.jpg', 'M.Sc Nursing', '20+ Years', 'Community Health Nursing', null],
         ['STF-1775881000003', 'Mrs. Anjali Sharma', 'Associate Professor', 'teaching', '/uploads/images/staff/staff_3.jpg', 'M.Sc Nursing', '15 Years', 'OBG Nursing', null],
         ['STF-1775881000004', 'Ms. Priyanka Das', 'Assistant Professor', 'teaching', '/uploads/images/staff/staff_4.jpg', 'M.Sc Nursing', '10 Years', 'Pediatric Nursing', null],

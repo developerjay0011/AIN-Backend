@@ -14,6 +14,57 @@ export const initialAboutSettings = [
         type: 'json'
     },
     {
+        key_name: 'ABOUT_ANTHEM',
+        value: JSON.stringify([
+            { type: 'stanza', text: "We, the students of Army Institute of Nursing,\nPledge to uphold our noble oath,\nWith every breath, we'll serve with pride,\nHappy to serve as nurses, side by side." },
+            { type: 'chorus', text: "We take oath and hold confident\nWith respect, kindness and dignity\nWe practice with love and a caring heart\nBorn to serve, we will never depart" },
+            { type: 'stanza', text: "We wear white, a symbol of care\nHands touch heart, with love we share\nWith compassion's touch, we mend the soul\nWe care, we heal, we play our part" },
+            { type: 'stanza', text: "In every moment we lend care\nComforting the sick, with love we share\nWith every breath, we strive to heal\nHealing hearts and bringing peace that's real" }
+        ]),
+        label: 'Institute Anthem',
+        group_name: 'About Us',
+        type: 'json'
+    },
+    {
+        key_name: 'ABOUT_OUR_STORY',
+        value: "The Army Institute of Nursing, which was established on Aug 1, 2006 at 151 base Hospital Basistha, Guwahati, ushered in a new era of imparting professional education in nursing sciences. Guwahati being the gateway to the North Eastern Region and also the commercial hub of the region already had the requisite infrastructure for the development of an institution like the AIN. Moreover, the city being well connected to the rest of the country provided a conducive atmosphere for the infrastructural development of AIN.\n\nAIN's primary aim is to provide a knowledge hub in the field of nursing sciences for the female dependents of Army personnel. AIN is recognized by Indian Nursing Council, New Delhi and Assam Nurses' Midwives' & Health Visitors' Council, Guwahati. AIN is also affiliated to the Srimanta Sankaradeva University of Health Sciences, Assam.",
+        label: 'Our Story',
+        group_name: 'About Us',
+        type: 'text'
+    },
+    {
+        key_name: 'ABOUT_OVERVIEW',
+        value: "The Army Institute of Nursing, established on August 1 2006 at the 151 Base Hospital, Basistha Guwahati ushered in a new era of imparting professional education in nursing sciences.\n\nOur aim is to nurture and empower female students of BSc and MSc Nursing by providing a premier knowledge ecosystem that fosters academic excellence, professional competence and compassionate care. We are officially recognized by the Indian Nursing Council, New Delhi, Assam Nurses' Midwives' & Health Visitors' Council, Guwahati and affiliated with Srimanta Sankaradeva University of Health Sciences, Assam.",
+        label: 'Institution Overview',
+        group_name: 'About Us',
+        type: 'text'
+    },
+    {
+        key_name: 'ABOUT_VISION',
+        value: "Strives to provide high-quality education that integrates continuous improvement, advanced technology and cost-effective practices. It is committed to prepare nursing students to become responsible, professional and competent nurses and midwives capable of delivering promotive, preventive, curative and rehabilitative healthcare services.",
+        label: 'Our Vision',
+        group_name: 'About Us',
+        type: 'text'
+    },
+    {
+        key_name: 'ABOUT_MISSION',
+        value: "Committed to deliver the highest standards of healthcare to all sections of society with a special focus on those who are socially and economically disadvantaged. Our goal is to nurture individuals with compassion, dedication and a spirit of service fostering professional excellence in education, research and community services.\n\nThe Army Institute of Nursing, Guwahati is dedicated to train the student nurses in providing quality care to individuals, families and communities across the lifespan. Our students are prepared to serve in diverse healthcare settings and to take on roles as educators, counsellors, researchers and administrators in both clinical and public health settings.",
+        label: 'Our Mission',
+        group_name: 'About Us',
+        type: 'text'
+    },
+    {
+        key_name: 'ABOUT_OBJECTIVES',
+        value: JSON.stringify([
+            'To provide a comprehensive system of education to impart thorough knowledge of nursing sciences with adequate practice in the field to prepare students to be highly competent and confident nurses in providing preventive, promotive and rehabilitative services in the health care setting and in community.',
+            'To maintain the highest standards of education in nursing through an innovative and practical approach to provide service to the society.',
+            'To develop teaching and supervisory skills in nursing, health care and administration in hospitals.'
+        ]),
+        label: 'Our Objectives',
+        group_name: 'About Us',
+        type: 'json'
+    },
+    {
         key_name: 'DIRECTOR_MESSAGE',
         value: JSON.stringify({
             name: 'Brig Ajit Kumar Borah, VSM (Retd)',

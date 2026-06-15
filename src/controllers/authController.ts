@@ -16,14 +16,22 @@ const verifyCaptcha = (token: string, answer: string) => {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) throw new Error('JWT_SECRET not set');
 
+  let decoded: { captcha: string };
   try {
-    const decoded = jwt.verify(token, jwtSecret) as { captcha: string };
-    if (decoded.captcha.toUpperCase() !== answer.toUpperCase()) {
-      throw new ApiError(400, 'Incorrect CAPTCHA answer. Please try again.');
-    }
+    decoded = jwt.verify(token, jwtSecret) as { captcha: string };
   } catch (error: any) {
-    if (error instanceof ApiError) throw error;
     throw new ApiError(401, 'CAPTCHA expired or invalid. Please refresh.');
+  }
+
+  if (!decoded || !decoded.captcha) {
+    throw new ApiError(400, 'Invalid CAPTCHA token structure');
+  }
+
+  const expected = decoded.captcha.toUpperCase();
+  const received = answer.trim().toUpperCase();
+
+  if (expected !== received) {
+    throw new ApiError(400, 'Incorrect CAPTCHA answer. Please try again.');
   }
 };
 
@@ -47,7 +55,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   if (!admin || !(await bcrypt.compare(password, admin.password))) {
     console.warn(`🚨 FAILED LOGIN ATTEMPT: User "${username}" from IP ${req.ip}`);
-    throw new ApiError(401, 'Invalid credentials');
+    throw new ApiError(401, 'Incorrect username or password. Please try again.');
   }
 
   const jwtSecret = process.env.JWT_SECRET;

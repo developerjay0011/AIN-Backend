@@ -95,4 +95,43 @@ export const seedPlacement = async () => {
         );
     }
     console.log(`✅ Seeded ${highlights.length} placement highlights.`);
+
+    // 4. Placement Collaborations
+    const collaborations = [
+        { id: 'PC-001', name: 'Apollo Hospitals' },
+        { id: 'PC-002', name: 'Max Healthcare' },
+        { id: 'PC-003', name: 'Fortis Escorts' },
+        { id: 'PC-004', name: 'Medanta The Medicity' },
+        { id: 'PC-005', name: 'AIIMS Guwahati' },
+        { id: 'PC-006', name: 'Base Hospital Basistha' },
+        { id: 'PC-007', name: 'GNRC Hospitals' },
+        { id: 'PC-008', name: 'Narayana Health' }
+    ];
+
+    console.log('🤝 Seeding Placement Collaborations...');
+    for (const c of collaborations) {
+        await pool.query(
+            'REPLACE INTO placement_collaborations (id, name, logoUrl) VALUES (?, ?, NULL)',
+            [c.id, c.name]
+        );
+    }
+    console.log(`✅ Seeded ${collaborations.length} placement collaborations.`);
+
+    // 5. Placement Resources (Brochures & Policies)
+    const resources = [
+        { id: 'PR-001', title: 'Placement Brochure 2026-2027', description: 'Comprehensive student profiles and institutional data.', type: 'brochure', year: 2026, fileUrl: '/uploads/documents/general/dummy.pdf' },
+        { id: 'PR-002', title: 'Placement Brochure 2025-2026', description: 'Comprehensive student profiles and institutional data.', type: 'brochure', year: 2025, fileUrl: '/uploads/documents/general/dummy.pdf' },
+        { id: 'PR-003', title: 'Placement Brochure 2024-2025', description: 'Comprehensive student profiles and institutional data.', type: 'brochure', year: 2024, fileUrl: '/uploads/documents/general/dummy.pdf' },
+        { id: 'PR-004', title: 'Placement Policy', description: 'Official regulations, eligibility criteria, and fair-opportunity protocols governing all placement activities.', type: 'policy', year: null, fileUrl: '/uploads/documents/general/dummy.pdf' },
+        { id: 'PR-005', title: 'SOP for Placement', description: 'Standard Operating Procedures for students participating in placement drives.', type: 'policy', year: null, fileUrl: '/uploads/documents/general/dummy.pdf' }
+    ];
+
+    console.log('📄 Seeding Placement Resources...');
+    for (const r of resources) {
+        await pool.query(
+            'REPLACE INTO placement_resources (id, title, description, fileUrl, type, year) VALUES (?, ?, ?, ?, ?, ?)',
+            [r.id, r.title, r.description, r.fileUrl, r.type, r.year]
+        );
+    }
+    console.log(`✅ Seeded ${resources.length} placement resources.`);
 };

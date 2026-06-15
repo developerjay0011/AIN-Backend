@@ -2,44 +2,38 @@ import pool from '../config/db.js';
 import { Request, Response } from 'express';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
-import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
-
+import { sanitizeString, sanitizeObject } from '../utils/sanitize.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getAllEvents = asyncHandler(async (req: Request, res: Response) => {
-  const [events] = await pool.query('SELECT * FROM gallery_events ORDER BY date DESC');
+  const [albums] = await pool.query('SELECT * FROM gallery_albums ORDER BY createdAt DESC');
 
-  for (let event of events as any[]) {
-    const [media] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE eventId = ?', [event.id]);
-    event.media = media;
-    // Parse highlights if they exist (stored as JSON string in SQLite/MySQL)
-    if (event.highlights && typeof event.highlights === 'string') {
-      try {
-        event.highlights = JSON.parse(event.highlights);
-      } catch (e) {
-        event.highlights = [];
-      }
-    } else if (!event.highlights) {
-      event.highlights = [];
-    }
+  for (let album of albums as any[]) {
+    const [media] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE albumId = ?', [album.id]);
+    album.media = media;
   }
 
-  res.json(ApiResponse.success(formatDataUrls(events, ['url']), 'Events fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(albums, ['url', 'coverImage']), 'Gallery albums fetched successfully'));
 });
 
 export const handleGalleryPost = asyncHandler(async (req: Request, res: Response) => {
-  let { id, name, description, date, startTime, endTime, location, mainTag, media, highlights } = sanitizeObject(req.body);
-  date = formatDateToYYYYMMDD(date);
+  let { id, name, description, media } = sanitizeObject(req.body);
+
+  let coverImageUrl = req.body.coverImage || '';
+  // If files are uploaded, we can set the first one as coverImage if coverImage is empty
+  if (req.files && Array.isArray(req.files) && req.files.length > 0 && !coverImageUrl) {
+    coverImageUrl = getUploadPath(req.files[0]);
+  }
 
   if (id === '0' || !id || id === 0) {
     if (!name) {
-      throw new ApiError(400, 'Event name is required');
+      throw new ApiError(400, 'Album name is required');
     }
 
-    const eventId = `EVT-${Date.now()}`;
+    const albumId = `ALB-${Date.now()}`;
     await pool.query(
-      'INSERT INTO gallery_events (id, name, description, date, startTime, endTime, location, mainTag, highlights) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [eventId, name, description, date, startTime, endTime, location, mainTag, highlights]
+      'INSERT INTO gallery_albums (id, name, description, coverImage) VALUES (?, ?, ?, ?)',
+      [albumId, name, description, coverImageUrl]
     );
 
     if (req.files && Array.isArray(req.files)) {
@@ -48,8 +42,8 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         const url = getUploadPath(file);
         const type = file.mimetype.startsWith('video/') ? 'video' : 'photo';
         await pool.query(
-          'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-          [mediaId, eventId, type, url, sanitizeString(file.originalname)]
+          'INSERT INTO gallery_media (id, albumId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+          [mediaId, albumId, type, url, sanitizeString(file.originalname)]
         );
       }
     }
@@ -60,36 +54,31 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         if (!m.id) {
           const mediaId = `MED-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
           await pool.query(
-            'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-            [mediaId, eventId, m.type || 'photo', m.url, sanitizeString(m.name)]
+            'INSERT INTO gallery_media (id, albumId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            [mediaId, albumId, m.type || 'photo', m.url, sanitizeString(m.name)]
           );
         }
       }
     }
 
-    const [newEvent] = await pool.query('SELECT * FROM gallery_events WHERE id = ?', [eventId]);
-    const [newMedia] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE eventId = ?', [eventId]);
-    (newEvent as any)[0].media = newMedia;
-    return res.status(201).json(ApiResponse.success(formatDataUrls((newEvent as any)[0], ['url']), 'Event created successfully'));
+    const [newAlbum] = await pool.query('SELECT * FROM gallery_albums WHERE id = ?', [albumId]);
+    const [newMedia] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE albumId = ?', [albumId]);
+    (newAlbum as any)[0].media = newMedia;
+    return res.status(201).json(ApiResponse.success(formatDataUrls((newAlbum as any)[0], ['url', 'coverImage']), 'Album created successfully'));
   } else {
-    const [existing] = await pool.query('SELECT * FROM gallery_events WHERE id = ?', [id]);
+    const [existing] = await pool.query('SELECT * FROM gallery_albums WHERE id = ?', [id]);
     if ((existing as any).length === 0) {
-      throw new ApiError(404, 'Event not found');
+      throw new ApiError(404, 'Album not found');
     }
 
     await pool.query(
-      `UPDATE gallery_events SET 
+      `UPDATE gallery_albums SET 
         name = COALESCE(?, name), 
         description = COALESCE(?, description), 
-        date = COALESCE(?, date), 
-        startTime = COALESCE(?, startTime),
-        endTime = COALESCE(?, endTime),
-        location = COALESCE(?, location),
-        mainTag = COALESCE(?, mainTag),
-        highlights = COALESCE(?, highlights),
+        coverImage = CASE WHEN ? = '' THEN coverImage ELSE ? END,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?`,
-      [name, description, date, startTime, endTime, location, mainTag, highlights, id]
+      [name, description, coverImageUrl, coverImageUrl, id]
     );
 
     // Delete media items that were removed in the form
@@ -100,7 +89,7 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         : deleteMediaIds;
 
       for (const mediaId of idsToDelete) {
-        await pool.query('DELETE FROM gallery_media WHERE id = ? AND eventId = ?', [mediaId, id]);
+        await pool.query('DELETE FROM gallery_media WHERE id = ? AND albumId = ?', [mediaId, id]);
       }
     }
 
@@ -110,26 +99,26 @@ export const handleGalleryPost = asyncHandler(async (req: Request, res: Response
         const url = getUploadPath(file);
         const type = file.mimetype.startsWith('video/') ? 'video' : 'photo';
         await pool.query(
-          'INSERT INTO gallery_media (id, eventId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+          'INSERT INTO gallery_media (id, albumId, type, url, name, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
           [mediaId, id, type, url, sanitizeString(file.originalname)]
         );
       }
     }
 
-    const [updatedEvent] = await pool.query('SELECT * FROM gallery_events WHERE id = ?', [id]);
-    const [currentMedia] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE eventId = ?', [id]);
-    (updatedEvent as any)[0].media = currentMedia;
-    return res.json(ApiResponse.success(formatDataUrls((updatedEvent as any)[0], ['url']), 'Event updated successfully'));
+    const [updatedAlbum] = await pool.query('SELECT * FROM gallery_albums WHERE id = ?', [id]);
+    const [currentMedia] = await pool.query('SELECT id, type, url, name FROM gallery_media WHERE albumId = ?', [id]);
+    (updatedAlbum as any)[0].media = currentMedia;
+    return res.json(ApiResponse.success(formatDataUrls((updatedAlbum as any)[0], ['url', 'coverImage']), 'Album updated successfully'));
   }
 });
 
 export const deleteEvent = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const [result] = await pool.query('DELETE FROM gallery_events WHERE id = ?', [id]);
+  const [result] = await pool.query('DELETE FROM gallery_albums WHERE id = ?', [id]);
 
   if ((result as any).affectedRows === 0) {
-    throw new ApiError(404, 'Event not found');
+    throw new ApiError(404, 'Album not found');
   }
 
-  res.json(ApiResponse.success(null, 'Event deleted successfully'));
+  res.json(ApiResponse.success(null, 'Album deleted successfully'));
 });

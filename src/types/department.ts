@@ -7,6 +7,8 @@ export interface Department {
   areas: string[];
   faculty: number;
   clinicalHours: string;
+  hod?: string;
+  facilities?: string[];
   createdAt?: string;
   updatedAt?: string;
 }

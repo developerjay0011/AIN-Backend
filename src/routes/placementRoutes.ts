@@ -10,7 +10,13 @@ import {
   deletePlacementStat,
   getPlacementHighlights,
   handlePlacementHighlightPost,
-  deletePlacementHighlight
+  deletePlacementHighlight,
+  getPlacementCollaborations,
+  handlePlacementCollaborationPost,
+  deletePlacementCollaboration,
+  getPlacementResources,
+  handlePlacementResourcePost,
+  deletePlacementResource
 } from '../controllers/placementController.js';
 
 const router = Router();
@@ -29,5 +35,15 @@ router.delete('/stats/:id', authMiddleware, deletePlacementStat);
 router.get('/highlights', getPlacementHighlights);
 router.post('/highlights', authMiddleware, handlePlacementHighlightPost);
 router.delete('/highlights/:id', authMiddleware, deletePlacementHighlight);
+
+// Placement Collaborations
+router.get('/collaborations', getPlacementCollaborations);
+router.post('/collaborations', authMiddleware, categoryUpload('placement').single('logo'), handlePlacementCollaborationPost);
+router.delete('/collaborations/:id', authMiddleware, deletePlacementCollaboration);
+
+// Placement Resources
+router.get('/resources', getPlacementResources);
+router.post('/resources', authMiddleware, categoryUpload('placement').single('file'), handlePlacementResourcePost);
+router.delete('/resources/:id', authMiddleware, deletePlacementResource);
 
 export default router;

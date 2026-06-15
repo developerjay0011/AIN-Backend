@@ -16,14 +16,19 @@ const verifyCaptcha = (token: string, answer: string) => {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) throw new Error('JWT_SECRET not set');
 
+    let decoded: { captcha: string };
     try {
-        const decoded = jwt.verify(token, jwtSecret) as { captcha: string };
-        if (decoded.captcha.toUpperCase() !== answer.toUpperCase()) {
-            throw new ApiError(400, 'Incorrect CAPTCHA answer. Please try again.');
-        }
+        decoded = jwt.verify(token, jwtSecret) as { captcha: string };
     } catch (error: any) {
-        if (error instanceof ApiError) throw error;
         throw new ApiError(401, 'CAPTCHA expired or invalid. Please refresh.');
+    }
+
+    if (!decoded || !decoded.captcha) {
+        throw new ApiError(400, 'Invalid CAPTCHA token structure');
+    }
+
+    if (decoded.captcha.toUpperCase() !== answer.trim().toUpperCase()) {
+        throw new ApiError(400, 'Incorrect CAPTCHA answer. Please try again.');
     }
 };
 

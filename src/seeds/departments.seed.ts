@@ -16,6 +16,12 @@ export const seedDepartments = async () => {
             ]),
             faculty: 3,
             clinicalHours: '480 hrs',
+            hod: 'Dr. Anita Sharma',
+            facilities: JSON.stringify([
+                'Paediatric Simulation Lab',
+                'Child Development Clinic',
+                'Neonatal Intensive Care Training Unit'
+            ]),
         },
         {
             departmentId: 'community-health',
@@ -31,6 +37,12 @@ export const seedDepartments = async () => {
             ]),
             faculty: 3,
             clinicalHours: '400 hrs',
+            hod: 'Dr. Rajesh Patel',
+            facilities: JSON.stringify([
+                'Rural Health Training Centre',
+                'Urban Health Post',
+                'Mobile Health Unit'
+            ]),
         },
         {
             departmentId: 'msn',
@@ -46,6 +58,12 @@ export const seedDepartments = async () => {
             ]),
             faculty: 4,
             clinicalHours: '560 hrs',
+            hod: 'Mrs. Priya Devi',
+            facilities: JSON.stringify([
+                'Advanced Medical-Surgical Lab',
+                'Clinical Skills Simulation Suite',
+                'Emergency Nursing Training Cell'
+            ]),
         },
         {
             departmentId: 'mhn',
@@ -61,6 +79,12 @@ export const seedDepartments = async () => {
             ]),
             faculty: 2,
             clinicalHours: '320 hrs',
+            hod: 'Dr. Sunita Barua',
+            facilities: JSON.stringify([
+                'Therapeutic Counseling Room',
+                'Psychiatric Skill Lab',
+                'Mental Health Counseling Helpline'
+            ]),
         },
         {
             departmentId: 'obg',
@@ -76,6 +100,12 @@ export const seedDepartments = async () => {
             ]),
             faculty: 3,
             clinicalHours: '480 hrs',
+            hod: 'Mrs. Rimjhim Sharma',
+            facilities: JSON.stringify([
+                'Maternity Skills Lab',
+                'Labour Room Simulator',
+                'Antenatal Education Wing'
+            ]),
         }
     ];
 
@@ -83,8 +113,8 @@ export const seedDepartments = async () => {
     for (const d of records) {
         const id = `DEPT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         await pool.query(
-            'REPLACE INTO departments (id, departmentId, name, shortName, overview, areas, faculty, clinicalHours) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [id, d.departmentId, d.name, d.shortName, d.overview, d.areas, d.faculty, d.clinicalHours]
+            'REPLACE INTO departments (id, departmentId, name, shortName, overview, areas, faculty, clinicalHours, hod, facilities) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [id, d.departmentId, d.name, d.shortName, d.overview, d.areas, d.faculty, d.clinicalHours, d.hod, d.facilities]
         );
     }
     console.log(`✅ Seeded ${records.length} departments.`);

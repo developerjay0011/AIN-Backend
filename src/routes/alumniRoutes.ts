@@ -12,7 +12,19 @@ import {
   deleteDirectoryMember,
   getAlumniExecutives,
   handleExecutivePost,
-  deleteExecutive
+  deleteExecutive,
+  getAlumniAnnouncements,
+  handleAnnouncementPost,
+  deleteAnnouncement,
+  getAlumniNews,
+  handleNewsPost,
+  deleteNews,
+  getAlumniCommittee,
+  handleCommitteePost,
+  deleteCommitteeMember,
+  getAlumniConstitution,
+  handleConstitutionPost,
+  deleteConstitutionArticle
 } from '../controllers/alumniController.js';
 
 const router = Router();
@@ -35,5 +47,25 @@ router.delete('/directory/:id', authMiddleware, deleteDirectoryMember);
 router.get('/executives', getAlumniExecutives);
 router.post('/executives', authMiddleware, categoryUpload('alumni').single('image'), handleExecutivePost);
 router.delete('/executives/:id', authMiddleware, deleteExecutive);
+
+// Announcements
+router.get('/announcements', getAlumniAnnouncements);
+router.post('/announcements', authMiddleware, handleAnnouncementPost);
+router.delete('/announcements/:id', authMiddleware, deleteAnnouncement);
+
+// News
+router.get('/news', getAlumniNews);
+router.post('/news', authMiddleware, categoryUpload('alumni').single('image'), handleNewsPost);
+router.delete('/news/:id', authMiddleware, deleteNews);
+
+// Committee Members
+router.get('/committee', getAlumniCommittee);
+router.post('/committee', authMiddleware, categoryUpload('alumni').single('image'), handleCommitteePost);
+router.delete('/committee/:id', authMiddleware, deleteCommitteeMember);
+
+// Constitution Articles
+router.get('/constitution', getAlumniConstitution);
+router.post('/constitution', authMiddleware, handleConstitutionPost);
+router.delete('/constitution/:id', authMiddleware, deleteConstitutionArticle);
 
 export default router;

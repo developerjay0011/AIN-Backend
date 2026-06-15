@@ -12,16 +12,18 @@ import authRoutes from './routes/authRoutes.js';
 import staffRoutes from './routes/staffRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import aboutRoutes from './routes/aboutRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
 import noticeRoutes from './routes/noticeRoutes.js';
 import alumniRoutes from './routes/alumniRoutes.js';
 import inquiryRoutes from './routes/inquiryRoutes.js';
 import toppersRoutes from './routes/toppersRoutes.js';
 import galleryRoutes from './routes/galleryRoutes.js';
+import programRoutes from './routes/programRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import facilityRoutes from './routes/facilityRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import placementRoutes from './routes/placementRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
-import organogramRoutes from './routes/organogramRoutes.js';
 import express, { type Request, type Response } from 'express';
 import { authMiddleware } from './middleware/authMiddleware.js';
 import administrationRoutes from './routes/administrationRoutes.js';
@@ -120,25 +122,24 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// API Routes
+app.use('/api', authMiddleware);
 app.use('/api/auth', authRoutes);
+
+app.use('/api/programs', programRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/departments', departmentRoutes);
-
-// Apply Auth Middleware to all subsequent API routes
-app.use('/api', authMiddleware);
-
 app.use('/api/hero', heroRoutes);
 app.use('/api/hall-of-fame', toppersRoutes);
 app.use('/api/gallery', galleryRoutes);
+app.use('/api/events', eventRoutes);
 app.use('/api/notices', noticeRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/aqars', aqarRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/facilities', facilityRoutes);
 app.use('/api/about', aboutRoutes);
 app.use('/api/administration', administrationRoutes);
-app.use('/api/organogram', organogramRoutes);
 app.use('/api/alumni', alumniRoutes);
 app.use('/api/placement', placementRoutes);
 app.use('/api/dashboard', dashboardRoutes);

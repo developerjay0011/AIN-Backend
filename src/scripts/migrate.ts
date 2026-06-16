@@ -257,6 +257,57 @@ const migrate = async () => {
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
+      alumni_announcements: `
+        CREATE TABLE IF NOT EXISTS alumni_announcements (
+          id VARCHAR(255) PRIMARY KEY,
+          title VARCHAR(500) NOT NULL,
+          date VARCHAR(100) NOT NULL,
+          type VARCHAR(100) NOT NULL,
+          description TEXT,
+          color VARCHAR(50) DEFAULT 'blue',
+          sortOrder INT DEFAULT 0,
+          expiryDate VARCHAR(100),
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      alumni_news: `
+        CREATE TABLE IF NOT EXISTS alumni_news (
+          id VARCHAR(255) PRIMARY KEY,
+          title VARCHAR(500) NOT NULL,
+          date VARCHAR(100) NOT NULL,
+          author VARCHAR(255) NOT NULL,
+          description TEXT,
+          imageUrl TEXT,
+          sortOrder INT DEFAULT 0,
+          expiryDate VARCHAR(100),
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      alumni_committee_members: `
+        CREATE TABLE IF NOT EXISTS alumni_committee_members (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          designation VARCHAR(255) NOT NULL,
+          batch VARCHAR(100) NOT NULL,
+          location VARCHAR(255) NOT NULL,
+          imageUrl TEXT,
+          linkedinUrl VARCHAR(255),
+          email VARCHAR(255),
+          sortOrder INT DEFAULT 0,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      alumni_constitution_articles: `
+        CREATE TABLE IF NOT EXISTS alumni_constitution_articles (
+          id VARCHAR(255) PRIMARY KEY,
+          sectionId VARCHAR(50) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          icon VARCHAR(100) DEFAULT 'FileText',
+          content TEXT NOT NULL,
+          sortOrder INT DEFAULT 0,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
       placement_members: `
         CREATE TABLE IF NOT EXISTS placement_members (
           id VARCHAR(255) PRIMARY KEY,
@@ -410,112 +461,6 @@ const migrate = async () => {
       await pool.query(finalQuery);
       // console.log(`✓ Table checked: ${name}`);
     }
-
-    // Ensure 'staff' table has 'designation' instead of 'role'
-    try {
-      const [hasRole]: any = await pool.query("SHOW COLUMNS FROM staff LIKE 'role'");
-      const [hasDesignation]: any = await pool.query("SHOW COLUMNS FROM staff LIKE 'designation'");
-      if (hasRole.length > 0 && hasDesignation.length === 0) {
-        console.log("⏳ Renaming column 'role' to 'designation' in 'staff'...");
-        await pool.query("ALTER TABLE staff CHANGE COLUMN role designation VARCHAR(255)");
-        console.log("✅ Column 'role' renamed to 'designation'.");
-      } else if (hasDesignation.length === 0) {
-        console.log("⏳ Adding missing column 'designation' to table 'staff'...");
-        await pool.query("ALTER TABLE staff ADD COLUMN designation VARCHAR(255) AFTER name");
-        console.log("✅ Column 'designation' added.");
-      }
-      
-      if (hasRole.length > 0 && hasDesignation.length > 0) {
-        console.log("⏳ Dropping redundant column 'role' from 'staff'...");
-        await pool.query("ALTER TABLE staff DROP COLUMN role");
-        console.log("✅ Redundant column 'role' dropped.");
-      }
-    } catch (err: any) {
-      console.warn("⚠️  Could not migrate staff columns:", err.message);
-    }
-
-    // 2. Incremental Migrations (Adding missing columns safely)
-    const migrations = [
-      // departments table
-      { table: 'departments', column: 'departmentId', query: 'ALTER TABLE departments ADD COLUMN departmentId VARCHAR(255) UNIQUE AFTER id' },
-      { table: 'departments', column: 'shortName', query: 'ALTER TABLE departments ADD COLUMN shortName VARCHAR(100) AFTER name' },
-      { table: 'departments', column: 'sortOrder', query: 'ALTER TABLE departments ADD COLUMN sortOrder INT DEFAULT 0 AFTER clinicalHours' },
-      { table: 'departments', column: 'hod', query: 'ALTER TABLE departments ADD COLUMN hod VARCHAR(255) AFTER clinicalHours' },
-      { table: 'departments', column: 'facilities', query: 'ALTER TABLE departments ADD COLUMN facilities TEXT AFTER hod' },
-
-      // hero_slides table
-      { table: 'hero_slides', column: 'tag', query: 'ALTER TABLE hero_slides ADD COLUMN tag VARCHAR(100) DEFAULT \'main\' AFTER imageUrl' },
-
-      // notice_links table (NEW migration)
-      { table: 'notice_links', column: 'createdAt', query: 'ALTER TABLE notice_links ADD COLUMN createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
-      { table: 'notice_links', column: 'updatedAt', query: 'ALTER TABLE notice_links ADD COLUMN updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
-
-      // gallery_media table (NEW migration)
-      { table: 'gallery_media', column: 'createdAt', query: 'ALTER TABLE gallery_media ADD COLUMN createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
-      { table: 'gallery_media', column: 'updatedAt', query: 'ALTER TABLE gallery_media ADD COLUMN updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
-
-      // admins table (NEW migration)
-      { table: 'admins', column: 'updatedAt', query: 'ALTER TABLE admins ADD COLUMN updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP' },
-
-      // administration_members — section column
-      { table: 'administration_members', column: 'section', query: "ALTER TABLE administration_members ADD COLUMN section VARCHAR(50) DEFAULT 'director' AFTER designation" },
-
-      // administration_members — role column
-      { table: 'administration_members', column: 'role', query: 'ALTER TABLE administration_members ADD COLUMN role VARCHAR(255) AFTER section' },
-    ];
-
-    for (const m of migrations) {
-      try {
-        // Check if column exists
-        const [columns]: any = await pool.query(`SHOW COLUMNS FROM ${m.table} LIKE ?`, [m.column]);
-        if (columns.length === 0) {
-          console.log(`⏳ Adding missing column '${m.column}' to table '${m.table}'...`);
-          await pool.query(m.query);
-          console.log(`✅ Column '${m.column}' added.`);
-        }
-      } catch (colErr: any) {
-        if (colErr.errno !== 1060) {
-          console.warn(`⚠️  Could not add column ${m.column} to ${m.table}:`, colErr.message);
-        }
-      }
-    }
-
-    // Explicitly remove title, subtitle, link, and isActive from hero_slides as requested
-    const columnsToRemove = ['title', 'subtitle', 'link', 'isActive'];
-    for (const col of columnsToRemove) {
-      try {
-        const [exists]: any = await pool.query(`SHOW COLUMNS FROM hero_slides LIKE ?`, [col]);
-        if (exists.length > 0) {
-          console.log(`⏳ Removing column '${col}' from 'hero_slides'...`);
-          await pool.query(`ALTER TABLE hero_slides DROP COLUMN ${col}`);
-          console.log(`✅ Column '${col}' removed.`);
-        }
-      } catch (err: any) {
-        console.warn(`⚠️  Could not remove column ${col}:`, err.message);
-      }
-    }
-
-    // Clean up redundant settings: 'About Us' group is now handled by /api/about
-    console.log('⏳ Cleaning up redundant settings...');
-    await pool.query("DELETE FROM settings WHERE group_name = 'About Us'");
-    console.log('✅ Redundant settings removed.');
-
-    // Backfill section column for existing administration_members rows
-    try {
-      const [sectionCol]: any = await pool.query("SHOW COLUMNS FROM administration_members LIKE 'section'");
-      if (sectionCol.length > 0) {
-        await pool.query("UPDATE administration_members SET section = 'director'  WHERE id = 'director'  AND (section IS NULL OR section = 'director')");
-        await pool.query("UPDATE administration_members SET section = 'principal' WHERE id = 'principal' AND (section IS NULL OR section = 'director')");
-        await pool.query("UPDATE administration_members SET section = 'registrar' WHERE id = 'registrar' AND (section IS NULL OR section = 'director')");
-        // All others default to 'academic-staff' if they still have the default 'director' and are not core
-        await pool.query("UPDATE administration_members SET section = 'academic-staff' WHERE id NOT IN ('director','principal','registrar') AND section = 'director'");
-        console.log('✅ Section backfill for administration_members complete.');
-      }
-    } catch (err: any) {
-      console.warn('⚠️  Could not backfill section column:', err.message);
-    }
-
-
     console.log('🚀 Database migration complete!');
     process.exit(0);
   } catch (error: any) {

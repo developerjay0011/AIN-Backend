@@ -20,13 +20,13 @@ export const seedEvents = async () => {
         ['MED-1775883000001', 'ALB-001', 'photo', '/uploads/images/gallery/event_e1_m1.jpg', 'Aerial View'],
         ['MED-1775883000002', 'ALB-001', 'photo', '/uploads/images/gallery/classroom.jpg', 'Modern Classrooms'],
         ['MED-1775883000003', 'ALB-001', 'photo', '/uploads/images/gallery/library.jpg', 'Central Library'],
-        ['MED-1775883000004', 'ALB-001', 'photo', 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800', 'Academic Block'],
-        ['MED-1775883000005', 'ALB-001', 'photo', 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800', 'Exam Hall'],
+        ['MED-1775883000004', 'ALB-001', 'photo', '/uploads/unsplash_photo-1580582932707-520aed937b7b.jpg', 'Academic Block'],
+        ['MED-1775883000005', 'ALB-001', 'photo', '/uploads/unsplash_photo-1577896851231-70ef18881754.jpg', 'Exam Hall'],
 
         // Album ALB-002: Student Life & Assemblies
         ['MED-1775883000006', 'ALB-002', 'photo', '/uploads/images/gallery/event_e2_m2.jpg', 'Student Assembly'],
-        ['MED-1775883000007', 'ALB-002', 'photo', 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800', 'Nursing Students'],
-        ['MED-1775883000008', 'ALB-002', 'photo', 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800', 'Art Workshop'],
+        ['MED-1775883000007', 'ALB-002', 'photo', '/uploads/unsplash_photo-1503676260728-1c00da094a0b.jpg', 'Nursing Students'],
+        ['MED-1775883000008', 'ALB-002', 'photo', '/uploads/unsplash_photo-1509062522246-3755977927d7.jpg', 'Art Workshop'],
         ['MED-1775883000009', 'ALB-002', 'photo', '/uploads/images/gallery/cafeteria.jpg', 'Student Cafeteria'],
 
         // Album ALB-003: Sports & Extracurricular Activities
@@ -38,7 +38,7 @@ export const seedEvents = async () => {
         ['MED-1775883000013', 'ALB-004', 'photo', '/uploads/images/gallery/science-lab.jpg', 'Chemistry Lab'],
         ['MED-1775883000014', 'ALB-004', 'photo', '/uploads/images/gallery/robotics.jpg', 'Robotics Simulation'],
         ['MED-1775883000015', 'ALB-004', 'photo', '/uploads/images/gallery/computer-lab.jpg', 'IT Resource Hub'],
-        ['MED-1775883000016', 'ALB-004', 'photo', 'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=800', 'Multimedia Studio'],
+        ['MED-1775883000016', 'ALB-004', 'photo', '/uploads/unsplash_photo-1571260899304-425eee4c7efc.jpg', 'Multimedia Studio'],
         ['MED-1775883000018', 'ALB-004', 'video', '/uploads/videos/gallery/1774524275426-535637036.mp4', 'Infrastructure Showcase']
     ];
 

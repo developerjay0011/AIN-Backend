@@ -8,35 +8,35 @@ export const seedAlumni = async () => {
             year: '2015',
             title: 'Association Founded',
             desc: 'Formed the original committee setup representing charter batches with over 200 initial members. This laid the foundation for long-term cooperative networks uniting professional nursing healthcare spaces globally along shared vision coefficients frameworks workflows setups.',
-            img: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&auto=format&fit=crop'
+            img: '/uploads/unsplash_photo-1521791136064-7986c2920216.jpg'
         },
         {
             id: 'ALM-2016-001',
             year: '2016',
             title: 'First Annual Meet',
             desc: 'Hosted the inaugural mega-meet bringing together graduates across batches to network. Keynotes addressed by senior directors focused purely on building modern nursing methodologies addressing mentorship gap updates triggers configurations workflows layout designs configs.',
-            img: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&auto=format&fit=crop'
+            img: '/uploads/unsplash_photo-1522202176988-66273c2fd55f.jpg'
         },
         {
             id: 'ALM-2018-001',
             year: '2018',
             title: 'Digital Portal Launch',
             desc: 'Launched the online alumni portal tracking global coordinates. Enables simple lookup and direct mailing connections supporting mentorship guidelines addressing updates triggers setups configuration workflows configurations triggers structures absolute.',
-            img: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=600&auto=format&fit=crop'
+            img: '/uploads/unsplash_photo-1515187029135-18ee286d815b.jpg'
         },
         {
             id: 'ALM-2020-001',
             year: '2020',
             title: 'Global Chapters Expansion',
             desc: 'Established active branches in major cities worldwide supporting graduates abroad. Facilitates localized mixers, alumni panels addressing international job placements support structures layout designs configs setups configurations workflow setups structs.',
-            img: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&auto=format&fit=crop'
+            img: '/uploads/unsplash_photo-1517245386807-bb43f82c33c4.jpg'
         },
         {
             id: 'ALM-2022-001',
             year: '2022',
             title: '5,000 Members Milestone',
             desc: 'Reached over 5,000 active registered members contributing back with funding initiatives. Helps finance campus utilities endowments supporting upcoming nursing students setups layout designs absolute configs setups configurations triggers fixes setups configs designs.',
-            img: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop'
+            img: '/uploads/unsplash_photo-1576091160399-112ba8d25d1d.jpg'
         },
     ];
 
@@ -52,9 +52,9 @@ export const seedAlumni = async () => {
 
     // 2. Activities
     const activities = [
-        { id: 'ACT-001', title: 'Annual Alumni Meet 2025', date: 'Jan 15, 2025', desc: 'Over 300 graduates gathered to celebrate the 10th anniversary foundation chapter meets.', img: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&auto=format&fit=crop' },
-        { id: 'ACT-002', title: 'Mentorship Seminar', date: 'Dec 05, 2024', desc: 'Distinguished nurses conducting mentorship training sessions on advanced critical nursing feeds.', img: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&auto=format&fit=crop' },
-        { id: 'ACT-003', title: 'Health Camp Drive', date: 'Oct 20, 2024', desc: 'Collaborative local healthcare screening drive organized across nearby municipalities nodes.', img: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&auto=format&fit=crop' }
+        { id: 'ACT-001', title: 'Annual Alumni Meet 2025', date: 'Jan 15, 2025', desc: 'Over 300 graduates gathered to celebrate the 10th anniversary foundation chapter meets.', img: '/uploads/unsplash_photo-1521791136064-7986c2920216.jpg' },
+        { id: 'ACT-002', title: 'Mentorship Seminar', date: 'Dec 05, 2024', desc: 'Distinguished nurses conducting mentorship training sessions on advanced critical nursing feeds.', img: '/uploads/unsplash_photo-1515187029135-18ee286d815b.jpg' },
+        { id: 'ACT-003', title: 'Health Camp Drive', date: 'Oct 20, 2024', desc: 'Collaborative local healthcare screening drive organized across nearby municipalities nodes.', img: '/uploads/unsplash_photo-1576091160399-112ba8d25d1d.jpg' }
     ];
 
     console.log('🎓 Seeding Alumni Activities...');
@@ -68,14 +68,14 @@ export const seedAlumni = async () => {
 
     // 3. Alumni Directory (Members)
     const members = [
-        { id: 'MEM-001', name: 'Dr. Priya Sharma', batch: '2016', role: 'Chief Nursing Officer', location: 'New Delhi', company: 'Apollo Hospitals', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop', verified: true, linkedinUrl: 'https://linkedin.com', email: 'priya@apollo.com' },
-        { id: 'MEM-002', name: 'Rahul Varma', batch: '2018', role: 'Staff Nurse - ICU', location: 'Mumbai', company: 'Fortis Healthcare', img: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop', verified: true, linkedinUrl: 'https://linkedin.com', email: 'rahul@fortis.com' },
-        { id: 'MEM-003', name: 'Sneha Das', batch: '2017', role: 'Nurse Educator', location: 'Bangalore', company: 'Manipal Hospitals', img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&auto=format&fit=crop', verified: false, linkedinUrl: 'https://linkedin.com', email: 'sneha@manipal.com' },
-        { id: 'MEM-004', name: 'Amit Singh', batch: '2019', role: 'Nursing Director', location: 'Guwahati', company: 'GNRC Hospitals', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop', verified: true, linkedinUrl: 'https://linkedin.com', email: 'amit@gnrc.com' },
-        { id: 'MEM-005', name: 'Anjali Desai', batch: '2016', role: 'Operations Manager', location: 'Hyderabad', company: 'KIMS Hospitals', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop', verified: true, linkedinUrl: 'https://linkedin.com', email: 'anjali@kims.com' },
-        { id: 'MEM-006', name: 'Vikram Mehta', batch: '2018', role: 'Public Health Officer', location: 'Pune', company: 'WHO India', img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop', verified: false, linkedinUrl: 'https://linkedin.com', email: 'vikram@who.org' },
-        { id: 'MEM-007', name: 'Neelam Roy', batch: '2017', role: 'Clinical Specialist', location: 'Kolkata', company: 'Medanta', img: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop', verified: true, linkedinUrl: 'https://linkedin.com', email: 'neelam@medanta.com' },
-        { id: 'MEM-008', name: 'Sanjay Kapoor', batch: '2019', role: 'Research Fellow', location: 'Chandigarh', company: 'AIIMS', img: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&auto=format&fit=crop', verified: true, linkedinUrl: 'https://linkedin.com', email: 'sanjay@aiims.edu' }
+        { id: 'MEM-001', name: 'Dr. Priya Sharma', batch: '2016', role: 'Chief Nursing Officer', location: 'New Delhi', company: 'Apollo Hospitals', img: '/uploads/unsplash_photo-1494790108377-be9c29b29330.jpg', verified: true, linkedinUrl: 'https://linkedin.com', email: 'priya@apollo.com' },
+        { id: 'MEM-002', name: 'Rahul Varma', batch: '2018', role: 'Staff Nurse - ICU', location: 'Mumbai', company: 'Fortis Healthcare', img: '/uploads/unsplash_photo-1539571696357-5a69c17a67c6.jpg', verified: true, linkedinUrl: 'https://linkedin.com', email: 'rahul@fortis.com' },
+        { id: 'MEM-003', name: 'Sneha Das', batch: '2017', role: 'Nurse Educator', location: 'Bangalore', company: 'Manipal Hospitals', img: '/uploads/unsplash_photo-1438761681033-6461ffad8d80.jpg', verified: false, linkedinUrl: 'https://linkedin.com', email: 'sneha@manipal.com' },
+        { id: 'MEM-004', name: 'Amit Singh', batch: '2019', role: 'Nursing Director', location: 'Guwahati', company: 'GNRC Hospitals', img: '/uploads/unsplash_photo-1500648767791-00dcc994a43e.jpg', verified: true, linkedinUrl: 'https://linkedin.com', email: 'amit@gnrc.com' },
+        { id: 'MEM-005', name: 'Anjali Desai', batch: '2016', role: 'Operations Manager', location: 'Hyderabad', company: 'KIMS Hospitals', img: '/uploads/unsplash_photo-1544005313-94ddf0286df2.jpg', verified: true, linkedinUrl: 'https://linkedin.com', email: 'anjali@kims.com' },
+        { id: 'MEM-006', name: 'Vikram Mehta', batch: '2018', role: 'Public Health Officer', location: 'Pune', company: 'WHO India', img: '/uploads/unsplash_photo-1506794778202-cad84cf45f1d.jpg', verified: false, linkedinUrl: 'https://linkedin.com', email: 'vikram@who.org' },
+        { id: 'MEM-007', name: 'Neelam Roy', batch: '2017', role: 'Clinical Specialist', location: 'Kolkata', company: 'Medanta', img: '/uploads/unsplash_photo-1573496359142-b8d87734a5a2.jpg', verified: true, linkedinUrl: 'https://linkedin.com', email: 'neelam@medanta.com' },
+        { id: 'MEM-008', name: 'Sanjay Kapoor', batch: '2019', role: 'Research Fellow', location: 'Chandigarh', company: 'AIIMS', img: '/uploads/unsplash_photo-1560250097-0b93528c311a.jpg', verified: true, linkedinUrl: 'https://linkedin.com', email: 'sanjay@aiims.edu' }
     ];
 
     console.log('🎓 Seeding Alumni Directory...');
@@ -89,11 +89,11 @@ export const seedAlumni = async () => {
 
     // 4. Executives
     const executives = [
-        { id: 'EXE-001', name: 'Prof. Amrita Baruah', role: 'President', batch: 'Class of 2011', img: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&auto=format&fit=crop', quote: "Our mission is to foster a lifelong bond between our members, providing a framework for professional growth, mutual support, and giving back to the institution that shaped our careers.", isHead: true, linkedinUrl: 'https://linkedin.com', email: 'president@alumni.com' },
-        { id: 'EXE-002', name: 'Dr. Sanjay Kalita', role: 'Vice President', batch: 'Class of 2013', img: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&auto=format&fit=crop', quote: '', isHead: false, linkedinUrl: 'https://linkedin.com', email: 'vp@alumni.com' },
-        { id: 'EXE-003', name: 'Mrs. Pinky Gogoi', role: 'General Secretary', batch: 'Class of 2012', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop', quote: '', isHead: false, linkedinUrl: 'https://linkedin.com', email: 'secretary@alumni.com' },
-        { id: 'EXE-004', name: 'Mr. Dipankar Das', role: 'Treasurer', batch: 'Class of 2014', img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=500&auto=format&fit=crop', quote: '', isHead: false, linkedinUrl: 'https://linkedin.com', email: 'treasurer@alumni.com' },
-        { id: 'EXE-005', name: 'Ms. Juri Chetia', role: 'Joint Secretary', batch: 'Class of 2015', img: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=500&auto=format&fit=crop', quote: '', isHead: false, linkedinUrl: 'https://linkedin.com', email: 'jointsec@alumni.com' }
+        { id: 'EXE-001', name: 'Prof. Amrita Baruah', role: 'President', batch: 'Class of 2011', img: '/uploads/unsplash_photo-1573496359142-b8d87734a5a2.jpg', quote: "Our mission is to foster a lifelong bond between our members, providing a framework for professional growth, mutual support, and giving back to the institution that shaped our careers.", isHead: true, linkedinUrl: 'https://linkedin.com', email: 'president@alumni.com' },
+        { id: 'EXE-002', name: 'Dr. Sanjay Kalita', role: 'Vice President', batch: 'Class of 2013', img: '/uploads/unsplash_photo-1560250097-0b93528c311a.jpg', quote: '', isHead: false, linkedinUrl: 'https://linkedin.com', email: 'vp@alumni.com' },
+        { id: 'EXE-003', name: 'Mrs. Pinky Gogoi', role: 'General Secretary', batch: 'Class of 2012', img: '/uploads/unsplash_photo-1544005313-94ddf0286df2.jpg', quote: '', isHead: false, linkedinUrl: 'https://linkedin.com', email: 'secretary@alumni.com' },
+        { id: 'EXE-004', name: 'Mr. Dipankar Das', role: 'Treasurer', batch: 'Class of 2014', img: '/uploads/unsplash_photo-1472099645785-5658abf4ff4e.jpg', quote: '', isHead: false, linkedinUrl: 'https://linkedin.com', email: 'treasurer@alumni.com' },
+        { id: 'EXE-005', name: 'Ms. Juri Chetia', role: 'Joint Secretary', batch: 'Class of 2015', img: '/uploads/unsplash_photo-1567532939604-b6b5b0db2604.jpg', quote: '', isHead: false, linkedinUrl: 'https://linkedin.com', email: 'jointsec@alumni.com' }
     ];
 
     console.log('🎓 Seeding Alumni Executives...');
@@ -125,9 +125,9 @@ export const seedAlumni = async () => {
 
     // 6. News
     const news = [
-        { id: 'NWS-001', title: 'Alumni Spotlight: Dr. Priya Sharma receives Global Nursing Award', date: 'Jan 20, 2026', author: 'AIN Placement', desc: 'Proud moment as our Class of 2016 graduate was honored in Geneva for her outstanding work during crisis care interventions.', img: 'https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=800&auto=format&fit=crop' },
-        { id: 'NWS-003', title: 'Annual Alumni Meet 2025: A Resounding Success', date: 'Nov 05, 2025', author: 'Events Team', desc: 'The annual gathering saw a record turnout of over 300 alumni. Relive the moments of joy, networking, and cultural celebrations.', img: 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=800&auto=format&fit=crop' },
-        { id: 'NWS-004', title: 'New Scholarship Fund Announced by Class of 2010', date: 'Oct 12, 2025', author: 'Finance Office', desc: 'The graduating class of 2010 has generously contributed to a new endowment fund supporting meritorious nursing students.', img: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop' }
+        { id: 'NWS-001', title: 'Alumni Spotlight: Dr. Priya Sharma receives Global Nursing Award', date: 'Jan 20, 2026', author: 'AIN Placement', desc: 'Proud moment as our Class of 2016 graduate was honored in Geneva for her outstanding work during crisis care interventions.', img: '/uploads/unsplash_photo-1516534775068-ba3e7458af70.jpg' },
+        { id: 'NWS-003', title: 'Annual Alumni Meet 2025: A Resounding Success', date: 'Nov 05, 2025', author: 'Events Team', desc: 'The annual gathering saw a record turnout of over 300 alumni. Relive the moments of joy, networking, and cultural celebrations.', img: '/uploads/unsplash_photo-1511556532299-8f662fc26c06.jpg' },
+        { id: 'NWS-004', title: 'New Scholarship Fund Announced by Class of 2010', date: 'Oct 12, 2025', author: 'Finance Office', desc: 'The graduating class of 2010 has generously contributed to a new endowment fund supporting meritorious nursing students.', img: '/uploads/unsplash_photo-1434030216411-0b793f4b4173.jpg' }
     ];
     console.log('🎓 Seeding Alumni News...');
     for (let i = 0; i < news.length; i++) {
@@ -141,11 +141,11 @@ export const seedAlumni = async () => {
 
     // 7. Committee Members
     const committee = [
-        { id: 'COM-001', name: 'Dr. Amitav Phukan', design: 'Executive Advisor', batch: 'Class of 2012', loc: 'Guwahati, Assam', img: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&auto=format&fit=crop' },
-        { id: 'COM-002', name: 'Mrs. Sangeeta Das', design: 'Core Coordinator', batch: 'Class of 2014', loc: 'Guwahati, Assam', img: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=300&auto=format&fit=crop' },
-        { id: 'COM-003', name: 'Mr. Rohan Hazarika', design: 'Public Secretary', batch: 'Class of 2015', loc: 'New Delhi, Delhi', img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&auto=format&fit=crop' },
-        { id: 'COM-004', name: 'Ms. Nibedita Sarma', design: 'Cultural Head', batch: 'Class of 2016', loc: 'Mumbai, Maharashtra', img: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop' },
-        { id: 'COM-005', name: 'Dr. Pallav Bora', design: 'Technical Head', batch: 'Class of 2017', loc: 'Bangalore, Karnataka', img: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=300&auto=format&fit=crop' }
+        { id: 'COM-001', name: 'Dr. Amitav Phukan', design: 'Executive Advisor', batch: 'Class of 2012', loc: 'Guwahati, Assam', img: '/uploads/unsplash_photo-1559839734-2b71ea197ec2.jpg' },
+        { id: 'COM-002', name: 'Mrs. Sangeeta Das', design: 'Core Coordinator', batch: 'Class of 2014', loc: 'Guwahati, Assam', img: '/uploads/unsplash_photo-1573497019940-1c28c88b4f3e.jpg' },
+        { id: 'COM-003', name: 'Mr. Rohan Hazarika', design: 'Public Secretary', batch: 'Class of 2015', loc: 'New Delhi, Delhi', img: '/uploads/unsplash_photo-1472099645785-5658abf4ff4e.jpg' },
+        { id: 'COM-004', name: 'Ms. Nibedita Sarma', design: 'Cultural Head', batch: 'Class of 2016', loc: 'Mumbai, Maharashtra', img: '/uploads/unsplash_photo-1580489944761-15a19d654956.jpg' },
+        { id: 'COM-005', name: 'Dr. Pallav Bora', design: 'Technical Head', batch: 'Class of 2017', loc: 'Bangalore, Karnataka', img: '/uploads/unsplash_photo-1531427186611-ecfd6d936c79.jpg' }
     ];
     console.log('🎓 Seeding Alumni Committee...');
     for (let i = 0; i < committee.length; i++) {

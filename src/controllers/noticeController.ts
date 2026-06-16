@@ -1,20 +1,41 @@
+import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
 import { Request, Response } from 'express';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
 
-import { asyncHandler } from '../utils/asyncHandler.js';
+const isAdminRequest = (req: Request): boolean => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const jwtSecret = process.env.JWT_SECRET;
+      if (jwtSecret) {
+        jwt.verify(token, jwtSecret);
+        return true;
+      }
+    }
+  } catch (e) { }
+  return false;
+};
 
 export const getAllNotices = asyncHandler(async (req: Request, res: Response) => {
   const [notices] = await pool.query('SELECT * FROM notices ORDER BY createdAt DESC');
 
-  for (let notice of notices as any[]) {
+  let filteredNotices = notices as any[];
+  if (!isAdminRequest(req)) {
+    const todayStr = formatDateToYYYYMMDD(new Date())!;
+    filteredNotices = filteredNotices.filter(notice => !notice.expiryDate || notice.expiryDate >= todayStr);
+  }
+
+  for (let notice of filteredNotices) {
     const [links] = await pool.query('SELECT label, url FROM notice_links WHERE noticeId = ?', [notice.id]);
     notice.links = links;
   }
 
-  res.json(ApiResponse.success(formatDataUrls(notices, ['url']), 'Notices fetched successfully'));
+  res.json(ApiResponse.success(formatDataUrls(filteredNotices, ['url']), 'Notices fetched successfully'));
 });
 
 export const handleNoticePost = asyncHandler(async (req: Request, res: Response) => {

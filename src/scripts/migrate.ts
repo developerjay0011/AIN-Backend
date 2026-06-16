@@ -363,6 +363,42 @@ const migrate = async () => {
           color VARCHAR(255),
           iconBg VARCHAR(255),
           iconColor VARCHAR(255)
+        )`,
+      award_types: `
+        CREATE TABLE IF NOT EXISTS award_types (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) UNIQUE NOT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      awards: `
+        CREATE TABLE IF NOT EXISTS awards (
+          id VARCHAR(255) PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          details TEXT,
+          image TEXT,
+          awardTypeId VARCHAR(255),
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (awardTypeId) REFERENCES award_types(id) ON DELETE SET NULL
+        )`,
+      recognition_types: `
+        CREATE TABLE IF NOT EXISTS recognition_types (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) UNIQUE NOT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      recognitions: `
+        CREATE TABLE IF NOT EXISTS recognitions (
+          id VARCHAR(255) PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          details TEXT,
+          image TEXT,
+          recognitionTypeId VARCHAR(255),
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (recognitionTypeId) REFERENCES recognition_types(id) ON DELETE SET NULL
         )`
     };
 

@@ -4,6 +4,22 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
+import jwt from 'jsonwebtoken';
+
+const isAdminRequest = (req: Request): boolean => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const jwtSecret = process.env.JWT_SECRET;
+      if (jwtSecret) {
+        jwt.verify(token, jwtSecret);
+        return true;
+      }
+    }
+  } catch (e) { }
+  return false;
+};
 
 /**
  * Get all Alumni Milestones
@@ -242,7 +258,14 @@ export const deleteExecutive = asyncHandler(async (req: Request, res: Response) 
  */
 export const getAlumniAnnouncements = asyncHandler(async (req: Request, res: Response) => {
   const [rows] = await pool.query('SELECT * FROM alumni_announcements ORDER BY sortOrder ASC, date DESC');
-  res.json(ApiResponse.success(rows, 'Alumni announcements fetched successfully'));
+
+  let filteredRows = rows as any[];
+  if (!isAdminRequest(req)) {
+    const todayStr = formatDateToYYYYMMDD(new Date())!;
+    filteredRows = filteredRows.filter(ann => !ann.expiryDate || ann.expiryDate >= todayStr);
+  }
+
+  res.json(ApiResponse.success(filteredRows, 'Alumni announcements fetched successfully'));
 });
 
 /**
@@ -295,7 +318,14 @@ export const deleteAnnouncement = asyncHandler(async (req: Request, res: Respons
  */
 export const getAlumniNews = asyncHandler(async (req: Request, res: Response) => {
   const [rows] = await pool.query('SELECT * FROM alumni_news ORDER BY sortOrder ASC, date DESC');
-  res.json(ApiResponse.success(formatDataUrls(rows, ['imageUrl']), 'Alumni news fetched successfully'));
+
+  let filteredRows = rows as any[];
+  if (!isAdminRequest(req)) {
+    const todayStr = formatDateToYYYYMMDD(new Date())!;
+    filteredRows = filteredRows.filter(news => !news.expiryDate || news.expiryDate >= todayStr);
+  }
+
+  res.json(ApiResponse.success(formatDataUrls(filteredRows, ['imageUrl']), 'Alumni news fetched successfully'));
 });
 
 /**

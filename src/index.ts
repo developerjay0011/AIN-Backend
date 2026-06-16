@@ -13,6 +13,7 @@ import staffRoutes from './routes/staffRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import aboutRoutes from './routes/aboutRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import awardsRoutes from './routes/awardsRoutes.js';
 import noticeRoutes from './routes/noticeRoutes.js';
 import alumniRoutes from './routes/alumniRoutes.js';
 import inquiryRoutes from './routes/inquiryRoutes.js';
@@ -24,6 +25,8 @@ import facilityRoutes from './routes/facilityRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import placementRoutes from './routes/placementRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
+import recognitionsRoutes from './routes/recognitionsRoutes.js';
+
 import express, { type Request, type Response } from 'express';
 import { authMiddleware } from './middleware/authMiddleware.js';
 import administrationRoutes from './routes/administrationRoutes.js';
@@ -143,6 +146,9 @@ app.use('/api/administration', administrationRoutes);
 app.use('/api/alumni', alumniRoutes);
 app.use('/api/placement', placementRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/awards', awardsRoutes);
+app.use('/api/recognitions', recognitionsRoutes);
+
 
 // Error Handling
 app.use(notFoundHandler);

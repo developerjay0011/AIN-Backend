@@ -5,10 +5,13 @@ const setupDatabase = async () => {
   try {
     console.log('⏳ Setting up database...');
 
-    const tables = [
+    const tablesToDrop = [
+      'recognitions',
+      'recognition_types',
+      'awards',
+      'award_types',
       'gallery_media',
       'gallery_albums',
-      'events',
       'notice_links',
       'notices',
       'hero_slides',
@@ -22,6 +25,8 @@ const setupDatabase = async () => {
       'admission_inquiries',
       'contact_inquiries',
       'alumni_milestones',
+      'departments',
+      'administration_members',
       'alumni_activities',
       'alumni_members',
       'alumni_executives',
@@ -34,7 +39,8 @@ const setupDatabase = async () => {
       'placement_highlights',
       'placement_collaborations',
       'placement_resources',
-      'administration_members',
+      'courses',
+      'programs',
       'campus_facilities',
       'hostel_details',
       'sna_details',
@@ -42,7 +48,7 @@ const setupDatabase = async () => {
     ];
 
     await pool.query('SET FOREIGN_KEY_CHECKS = 0');
-    for (const table of tables) {
+    for (const table of tablesToDrop) {
       await pool.query(`DROP TABLE IF EXISTS ${table}`);
     }
     await pool.query('SET FOREIGN_KEY_CHECKS = 1');
@@ -113,6 +119,8 @@ const setupDatabase = async () => {
         noticeId VARCHAR(255),
         label VARCHAR(255),
         url TEXT,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (noticeId) REFERENCES notices(id) ON DELETE CASCADE
       )`,
       `CREATE TABLE IF NOT EXISTS staff (
@@ -152,7 +160,8 @@ const setupDatabase = async () => {
         id VARCHAR(255) PRIMARY KEY,
         username VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
       `CREATE TABLE IF NOT EXISTS quality_metrics (
         id VARCHAR(255) PRIMARY KEY,
@@ -172,38 +181,6 @@ const setupDatabase = async () => {
         group_name VARCHAR(100),
         type VARCHAR(50) DEFAULT 'text',
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )`,
-      `CREATE TABLE IF NOT EXISTS campus_facilities (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        description TEXT,
-        image TEXT,
-        features TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS hostel_details (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255),
-        description TEXT,
-        amenities TEXT,
-        wardenName VARCHAR(255),
-        wardenPhone VARCHAR(255),
-        ruleBookPdf TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS sna_details (
-        id VARCHAR(255) PRIMARY KEY,
-        objectives TEXT,
-        executiveCommittee TEXT,
-        functionalCommittees TEXT,
-        annualEvents TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS student_supports (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        icon VARCHAR(255),
-        color VARCHAR(255),
-        iconBg VARCHAR(255),
-        iconColor VARCHAR(255)
       )`,
       `CREATE TABLE IF NOT EXISTS admission_inquiries (
         id VARCHAR(255) PRIMARY KEY,
@@ -251,6 +228,25 @@ const setupDatabase = async () => {
         facilities TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS administration_members (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        designation VARCHAR(255) NOT NULL,
+        section VARCHAR(50) DEFAULT 'director',
+        role VARCHAR(255),
+        imageUrl TEXT,
+        qualification VARCHAR(255),
+        experience VARCHAR(255),
+        specialization VARCHAR(255),
+        quote TEXT,
+        description TEXT,
+        sortOrder INT DEFAULT 0,
+        isLinked BOOLEAN DEFAULT 0,
+        staffId VARCHAR(255),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (staffId) REFERENCES staff(id) ON DELETE SET NULL
       )`,
       `CREATE TABLE IF NOT EXISTS alumni_activities (
         id VARCHAR(255) PRIMARY KEY,
@@ -383,27 +379,88 @@ const setupDatabase = async () => {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
-      `CREATE TABLE IF NOT EXISTS administration_members (
+      `CREATE TABLE IF NOT EXISTS programs (
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        designation VARCHAR(255) NOT NULL,
-        section VARCHAR(50) DEFAULT 'director',
-        role VARCHAR(255),
-        imageUrl TEXT,
-        qualification VARCHAR(255),
-        experience VARCHAR(255),
-        specialization VARCHAR(255),
-        quote TEXT,
         description TEXT,
-        sortOrder INT DEFAULT 0,
-        isLinked BOOLEAN DEFAULT 0,
-        staffId VARCHAR(255),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS courses (
+        id VARCHAR(255) PRIMARY KEY,
+        programId VARCHAR(255) NOT NULL,
+        image TEXT,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (staffId) REFERENCES staff(id) ON DELETE SET NULL
+        FOREIGN KEY (programId) REFERENCES programs(id) ON DELETE CASCADE
+      )`,
+      `CREATE TABLE IF NOT EXISTS campus_facilities (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        image TEXT,
+        features TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS hostel_details (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255),
+        description TEXT,
+        amenities TEXT,
+        wardenName VARCHAR(255),
+        wardenPhone VARCHAR(255),
+        ruleBookPdf TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS sna_details (
+        id VARCHAR(255) PRIMARY KEY,
+        objectives TEXT,
+        executiveCommittee TEXT,
+        functionalCommittees TEXT,
+        annualEvents TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS student_supports (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        icon VARCHAR(255),
+        color VARCHAR(255),
+        iconBg VARCHAR(255),
+        iconColor VARCHAR(255)
+      )`,
+      `CREATE TABLE IF NOT EXISTS award_types (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS awards (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        details TEXT,
+        image TEXT,
+        awardTypeId VARCHAR(255),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (awardTypeId) REFERENCES award_types(id) ON DELETE SET NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS recognition_types (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS recognitions (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        details TEXT,
+        image TEXT,
+        recognitionTypeId VARCHAR(255),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (recognitionTypeId) REFERENCES recognition_types(id) ON DELETE SET NULL
       )`
     ];
-
 
     for (const query of createTablesQueries) {
       let finalQuery = query.trim();
@@ -517,12 +574,7 @@ const setupDatabase = async () => {
       console.log('✅ Initial student supports seeded.');
     }
 
-    // Clean up redundant settings: 'About Us' group is now handled by /api/about
-    console.log('⏳ Cleaning up redundant settings...');
-    await pool.query("DELETE FROM settings WHERE group_name = 'About Us'");
-    console.log('✅ Redundant settings removed.');
-
-    console.log('🚀 Database migration complete!');
+    console.log('🚀 Database setup complete!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Database setup failed:', error);

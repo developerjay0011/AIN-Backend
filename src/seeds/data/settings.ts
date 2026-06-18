@@ -22,4 +22,6 @@ export const initialSettings = [
     },
     { key_name: 'WEBSITE_LAST_UPDATED', value: '11-04-2026', label: 'Website last updated date', group_name: 'General' },
     { key_name: 'ADMIN_DASHBOARD_URL', value: 'http://admin.edu-track.com:3003', label: 'Admin Dashboard Base URL', group_name: 'General' },
+    { key_name: 'OAT_REGISTRATION_LINK', value: 'https://ainguwahati.cbtexam.in/Home/home.aspx', label: 'OAT Registration Link', group_name: 'Admissions' },
+    { key_name: 'OAT_REGISTRATION_VISIBLE', value: 'true', label: 'Show OAT Registration Button', group_name: 'Admissions' },
 ];

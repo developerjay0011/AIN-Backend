@@ -9,6 +9,9 @@ import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
  * Helper to verify CAPTCHA token and answer
  */
 const verifyCaptcha = (token: string, answer: string) => {
+  if (process.env.NODE_ENV === 'development') {
+    return;
+  }
   if (!token || !answer) {
     throw new ApiError(400, 'CAPTCHA verification is required');
   }

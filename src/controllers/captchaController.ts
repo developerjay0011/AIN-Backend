@@ -76,6 +76,7 @@ export const generateCaptcha = (req: Request, res: Response) => {
 
   res.json(ApiResponse.success({
     svg: Buffer.from(svg).toString('base64'), // Base64 for easy transport
-    token
+    token,
+    devText: process.env.NODE_ENV === 'development' ? text : undefined
   }, 'Captcha generated successfully'));
 };

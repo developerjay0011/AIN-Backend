@@ -73,7 +73,7 @@ export const updateSettings = asyncHandler(async (req: Request, res: Response) =
           // Merge arrays based on index or just preserve logos
           const merged = incomingData.map((item, idx) => {
             const old = existingData[idx];
-            if (!old) return item;
+            if (!old || typeof old !== 'object' || typeof item !== 'object') return item;
             return {
               ...old,
               ...item,

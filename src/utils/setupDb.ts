@@ -26,7 +26,6 @@ const setupDatabase = async () => {
       'contact_inquiries',
       'alumni_milestones',
       'departments',
-      'administration_members',
       'alumni_activities',
       'alumni_members',
       'alumni_executives',

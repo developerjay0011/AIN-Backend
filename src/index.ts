@@ -29,7 +29,6 @@ import recognitionsRoutes from './routes/recognitionsRoutes.js';
 
 import express, { type Request, type Response } from 'express';
 import { authMiddleware } from './middleware/authMiddleware.js';
-import administrationRoutes from './routes/administrationRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -142,7 +141,6 @@ app.use('/api/admins', adminRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/facilities', facilityRoutes);
 app.use('/api/about', aboutRoutes);
-app.use('/api/administration', administrationRoutes);
 app.use('/api/alumni', alumniRoutes);
 app.use('/api/placement', placementRoutes);
 app.use('/api/dashboard', dashboardRoutes);

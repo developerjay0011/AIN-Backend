@@ -5,38 +5,47 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 
-/**
- * Staff IDs that are linked to core leadership profiles in administration_members.
- * These rows cannot be deleted; edits sync back to administration_members.
- */
-const PROTECTED_STAFF_IDS: Record<string, string> = {
-  'STF-1775881000101': 'director',  // Brig Ajit Kumar Borah
-  'STF-1775881000001': 'principal', // Prof. Kabita Baishya
-  'STF-1775881000102': 'registrar', // Col Jyoti Prasad Saikia
-};
-
 export const getAllStaff = asyncHandler(async (req: Request, res: Response) => {
   const { type } = req.query;
-  let query = 'SELECT * FROM staff';
+  let query = `
+    SELECT 
+      s.*, 
+      d.name as departmentName,
+      d.shortName as departmentShortName
+    FROM staff s
+    LEFT JOIN departments d ON s.department = d.id
+  `;
   let params: any[] = [];
 
   if (type) {
-    query += ' WHERE type = ?';
+    query += ' WHERE s.type = ?';
     params.push(type);
   }
 
   const [rows]: any = await pool.query(query, params);
   const mappedRows = rows.map((r: any) => ({
     ...r,
-    role: r.designation || r.role
+    role: r.role || r.designation
   }));
   res.json(ApiResponse.success(formatDataUrls(mappedRows, ['image']), 'Staff members fetched successfully'));
 });
 
 export const handleStaffPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, name, role, designation, type, qualification, experience, specialization, department } = sanitizeObject(req.body);
+  const { id, name, role, designation, type, qualification, experience, specialization, department, section, quote, description } = sanitizeObject(req.body);
   const image = req.file ? getUploadPath(req.file) : (req.body.image || null);
   const resolvedDesignation = designation || role || null;
+
+  // Enforce single-member constraint for core leadership sections
+  const CORE_SECTIONS = ['director', 'principal', 'registrar'];
+  if (section && CORE_SECTIONS.includes(section)) {
+    const [existing]: any = await pool.query(
+      'SELECT id FROM staff WHERE section = ? AND id != ? LIMIT 1',
+      [section, id || '0']
+    );
+    if (existing.length > 0) {
+      throw new ApiError(409, `A profile with section "${section}" already exists. Only one profile is allowed per core section.`);
+    }
+  }
 
   if (id === '0' || !id || id === 0) {
     // ── Create ────────────────────────────────────────────────────────────
@@ -46,8 +55,8 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
 
     const newId = `STF-${Date.now()}`;
     const query = `
-      INSERT INTO staff (id, name, designation, type, image, qualification, experience, specialization, department)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO staff (id, name, designation, type, image, qualification, experience, specialization, department, section, role, quote, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     await pool.query(query, [
@@ -59,11 +68,21 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
       qualification || null,
       experience || null,
       specialization || null,
-      department || null
+      department || null,
+      section || null,
+      role || null,
+      quote || null,
+      description || null,
     ]);
 
-    const [newMember]: any = await pool.query('SELECT * FROM staff WHERE id = ?', [newId]);
-    const responseData = { ...newMember[0], role: newMember[0].designation || newMember[0].role };
+    const [newMember]: any = await pool.query(
+      `SELECT s.*, d.name as departmentName, d.shortName as departmentShortName
+       FROM staff s
+       LEFT JOIN departments d ON s.department = d.id
+       WHERE s.id = ?`,
+      [newId]
+    );
+    const responseData = { ...newMember[0], role: newMember[0].role || newMember[0].designation };
     return res.status(201).json(ApiResponse.success(formatDataUrls(responseData, ['image']), 'Staff member created successfully'));
 
   } else {
@@ -73,52 +92,65 @@ export const handleStaffPost = asyncHandler(async (req: Request, res: Response) 
       throw new ApiError(404, 'Staff member not found');
     }
 
+    const existingRecord = existing[0];
+    const resolvedName = name !== undefined ? (name || null) : existingRecord.name;
+    const resolvedDesignationWithTitle = designation !== undefined 
+      ? (designation || role || null) 
+      : (role !== undefined ? (role || null) : existingRecord.designation);
+    const resolvedType = type !== undefined ? (type || null) : existingRecord.type;
+    const resolvedQualification = qualification !== undefined ? (qualification || null) : existingRecord.qualification;
+    const resolvedExperience = experience !== undefined ? (experience || null) : existingRecord.experience;
+    const resolvedSpecialization = specialization !== undefined ? (specialization || null) : existingRecord.specialization;
+    const resolvedDepartment = department !== undefined ? (department || null) : existingRecord.department;
+    const resolvedImage = req.file ? getUploadPath(req.file) : (req.body.image !== undefined ? req.body.image : existingRecord.image);
+    const resolvedSection = section !== undefined ? (section || null) : existingRecord.section;
+    const resolvedRole = role !== undefined ? (role || null) : existingRecord.role;
+    const resolvedQuote = quote !== undefined ? (quote || null) : existingRecord.quote;
+    const resolvedDescription = description !== undefined ? (description || null) : existingRecord.description;
+
     const query = `
       UPDATE staff 
-      SET name           = COALESCE(?, name),
-          designation    = COALESCE(?, designation),
-          type           = COALESCE(?, type),
-          qualification  = COALESCE(?, qualification),
-          experience     = COALESCE(?, experience),
-          specialization = COALESCE(?, specialization),
-          department     = COALESCE(?, department),
-          image          = COALESCE(?, image),
+      SET name           = ?,
+          designation    = ?,
+          type           = ?,
+          qualification  = ?,
+          experience     = ?,
+          specialization = ?,
+          department     = ?,
+          image          = ?,
+          section        = ?,
+          role           = ?,
+          quote          = ?,
+          description    = ?,
           updatedAt      = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
 
     await pool.query(query, [
-      name || null,
-      resolvedDesignation,
-      type || null,
-      qualification || null,
-      experience || null,
-      specialization || null,
-      department || null,
-      image,
+      resolvedName,
+      resolvedDesignationWithTitle,
+      resolvedType,
+      resolvedQualification,
+      resolvedExperience,
+      resolvedSpecialization,
+      resolvedDepartment,
+      resolvedImage,
+      resolvedSection,
+      resolvedRole,
+      resolvedQuote,
+      resolvedDescription,
       id
     ]);
 
-    // If this staff member is linked to a core leadership profile, mirror the update
-    // to administration_members so that single-source-of-truth is maintained.
-    const adminId = PROTECTED_STAFF_IDS[id];
-    if (adminId) {
-      await pool.query(
-        `UPDATE administration_members
-         SET name           = COALESCE(?, name),
-             imageUrl       = COALESCE(?, imageUrl),
-             qualification  = COALESCE(?, qualification),
-             experience     = COALESCE(?, experience),
-             specialization = COALESCE(?, specialization),
-             updatedAt      = CURRENT_TIMESTAMP
-         WHERE id = ?`,
-        [name || null, image || null, qualification || null, experience || null, specialization || null, adminId]
-      );
-    }
-
-    const [updatedMember]: any = await pool.query('SELECT * FROM staff WHERE id = ?', [id]);
-    const responseData = { ...updatedMember[0], role: updatedMember[0].designation || updatedMember[0].role };
-    return res.json(ApiResponse.success(formatDataUrls(responseData, ['image']), 'Staff member updated successfully'));
+    const [updatedMember]: any = await pool.query(
+      `SELECT s.*, d.name as departmentName, d.shortName as departmentShortName
+       FROM staff s
+       LEFT JOIN departments d ON s.department = d.id
+       WHERE s.id = ?`,
+      [id]
+    );
+    const responseData = { ...updatedMember[0], role: updatedMember[0].role || updatedMember[0].designation };
+    return res.json(ApiResponse.success(formatDataUrls(updatedMember[0], ['image']), 'Staff member updated successfully'));
   }
 });
 
@@ -126,7 +158,8 @@ export const deleteStaffMember = asyncHandler(async (req: Request, res: Response
   const { id } = req.params;
 
   // Block deletion of core linked leadership staff
-  if (PROTECTED_STAFF_IDS[String(id)]) {
+  const [existing]: any = await pool.query('SELECT section FROM staff WHERE id = ?', [id]);
+  if (existing.length > 0 && ['director', 'principal', 'registrar'].includes(existing[0].section)) {
     throw new ApiError(400, 'This staff member is a core institutional profile linked to the Administration and About sections. To manage this record, use the Administration Manager.');
   }
 
@@ -138,3 +171,4 @@ export const deleteStaffMember = asyncHandler(async (req: Request, res: Response
 
   res.json(ApiResponse.success(null, 'Staff member deleted successfully'));
 });
+

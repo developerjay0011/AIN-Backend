@@ -133,6 +133,11 @@ const setupDatabase = async () => {
         experience VARCHAR(255),
         specialization VARCHAR(255),
         department VARCHAR(255),
+        section VARCHAR(50) DEFAULT NULL,
+        role VARCHAR(255) DEFAULT NULL,
+        quote TEXT DEFAULT NULL,
+        description TEXT DEFAULT NULL,
+        sortOrder INT DEFAULT 0,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
@@ -217,36 +222,19 @@ const setupDatabase = async () => {
       )`,
       `CREATE TABLE IF NOT EXISTS departments (
         id VARCHAR(255) PRIMARY KEY,
-        departmentId VARCHAR(255) UNIQUE NOT NULL,
         name VARCHAR(255) NOT NULL,
         shortName VARCHAR(100) NOT NULL,
         overview TEXT,
         areas TEXT,
-        faculty INT DEFAULT 0,
         clinicalHours VARCHAR(255),
         hod VARCHAR(255),
         facilities TEXT,
+        icon VARCHAR(255) DEFAULT NULL,
+        color VARCHAR(255) DEFAULT NULL,
+        iconBg VARCHAR(255) DEFAULT NULL,
+        iconColor VARCHAR(255) DEFAULT NULL,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      )`,
-      `CREATE TABLE IF NOT EXISTS administration_members (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        designation VARCHAR(255) NOT NULL,
-        section VARCHAR(50) DEFAULT 'director',
-        role VARCHAR(255),
-        imageUrl TEXT,
-        qualification VARCHAR(255),
-        experience VARCHAR(255),
-        specialization VARCHAR(255),
-        quote TEXT,
-        description TEXT,
-        sortOrder INT DEFAULT 0,
-        isLinked BOOLEAN DEFAULT 0,
-        staffId VARCHAR(255),
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (staffId) REFERENCES staff(id) ON DELETE SET NULL
       )`,
       `CREATE TABLE IF NOT EXISTS alumni_activities (
         id VARCHAR(255) PRIMARY KEY,
@@ -502,20 +490,24 @@ const setupDatabase = async () => {
       console.log('✅ Initial quality metrics seeded.');
     }
 
-    // Seed settings if empty
-    const [settings] = await pool.query('SELECT * FROM settings LIMIT 1');
-    if ((settings as any[]).length === 0) {
-      console.log('⚙️ Seeding initial site settings...');
-      const { initialSettings } = await import('../seeds/data/settings.js');
+    // Seed settings if empty or missing keys
+    const [settings]: any = await pool.query('SELECT * FROM settings');
+    const existingKeys = new Set(settings.map((s: any) => s.key_name));
+    const { initialSettings } = await import('../seeds/data/settings.js');
+    let addedCount = 0;
 
-      for (const s of initialSettings) {
+    for (const s of initialSettings) {
+      if (!existingKeys.has(s.key_name)) {
         const id = `SET-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         await pool.query(
           'INSERT INTO settings (id, key_name, value, label, group_name, type) VALUES (?, ?, ?, ?, ?, ?)',
           [id, s.key_name, s.value, s.label, s.group_name, s.type || 'text']
         );
+        addedCount++;
       }
-      console.log('✅ Initial site settings seeded.');
+    }
+    if (addedCount > 0) {
+      console.log(`⚙️ Seeded ${addedCount} missing settings.`);
     }
 
     // Seed campus facilities if empty

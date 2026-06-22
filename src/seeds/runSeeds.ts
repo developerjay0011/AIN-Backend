@@ -15,7 +15,6 @@ import { seedFacilities } from './facilities.seed.js';
 import { seedDepartments } from './departments.seed.js';
 import { seedRecognitions } from './recognitions.seed.js';
 import { seedInstitutional } from './institutional.seed.js';
-import { seedAdministration } from './administration.seed.js';
 
 
 const runAllSeeds = async () => {
@@ -34,7 +33,7 @@ const runAllSeeds = async () => {
             'admission_inquiries', 'contact_inquiries', 'alumni_milestones',
             'alumni_activities', 'alumni_members', 'alumni_executives',
             'placement_members', 'placement_stats', 'placement_highlights',
-            'administration_members', 'courses', 'programs',
+            'courses', 'programs',
             'campus_facilities', 'hostel_details', 'sna_details', 'student_supports'
         ];
         for (const table of tables) {
@@ -57,7 +56,6 @@ const runAllSeeds = async () => {
         await seedHero();
         await seedAlumni();
         await seedPlacement();
-        await seedAdministration();
         await seedAwards();
         await seedRecognitions();
 

@@ -1,29 +1,17 @@
 import pool from '../config/db.js';
 import { Request, Response } from 'express';
 import { sanitizeString } from '../utils/sanitize.js';
+import { formatDataUrls } from '../utils/urlHelper.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
-import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
 
 /**
- * Leadership role → administration_members id mapping
- */
-const LEADERSHIP_IDS = {
-  DIRECTOR_MESSAGE: 'director',
-  PRINCIPAL_MESSAGE: 'principal',
-  REGISTRAR_MESSAGE: 'registrar',
-} as const;
-
-type LeadershipKey = keyof typeof LEADERSHIP_IDS;
-
-/**
- * Get all About Us content (Milestones and Leadership Messages)
- * Leadership messages are sourced from administration_members (single source of truth).
+ * Get all About Us content (Milestones, Story, Overview, Vision, Mission, Objectives, Anthem)
  */
 export const getAboutContent = asyncHandler(async (req: Request, res: Response) => {
-  // Fetch milestones and new text content from settings
+  // Fetch milestones and text content from settings
   const settingKeys = [
-    'ABOUT_MILESTONES', 'ABOUT_ANTHEM', 'ABOUT_OUR_STORY', 
+    'ABOUT_MILESTONES', 'ABOUT_ANTHEM', 'ABOUT_OUR_STORY',
     'ABOUT_OVERVIEW', 'ABOUT_VISION', 'ABOUT_MISSION', 'ABOUT_OBJECTIVES'
   ];
   const placeholders = settingKeys.map(() => '?').join(',');
@@ -40,9 +28,6 @@ export const getAboutContent = asyncHandler(async (req: Request, res: Response) 
     ABOUT_VISION: '',
     ABOUT_MISSION: '',
     ABOUT_OBJECTIVES: '',
-    DIRECTOR_MESSAGE: { name: '', image: null, quote: '', body: '' },
-    PRINCIPAL_MESSAGE: { name: '', image: null, quote: '', body: '' },
-    REGISTRAR_MESSAGE: { name: '', image: null, quote: '', body: '' },
   };
 
   (settingRows as any[]).forEach(row => {
@@ -53,41 +38,14 @@ export const getAboutContent = asyncHandler(async (req: Request, res: Response) 
     content[row.key_name] = value;
   });
 
-  // Fetch leadership messages from administration_members
-  const [leaderRows] = await pool.query(
-    `SELECT id, name, imageUrl, quote, description
-     FROM administration_members
-     WHERE id IN ('director', 'principal', 'registrar')`
-  );
-
-  (leaderRows as any[]).forEach((row: any) => {
-    const keyMap: Record<string, LeadershipKey> = {
-      director: 'DIRECTOR_MESSAGE',
-      principal: 'PRINCIPAL_MESSAGE',
-      registrar: 'REGISTRAR_MESSAGE',
-    };
-    const key = keyMap[row.id];
-    if (key) {
-      content[key] = {
-        name: row.name || '',
-        image: row.imageUrl || null,
-        quote: row.quote || '',
-        body: row.description || '',
-      };
-    }
-  });
-
   res.json(ApiResponse.success(formatDataUrls(content, ['image']), 'About content fetched successfully'));
 });
 
 /**
  * Update About Us content
- * Leadership messages are written to administration_members (single source of truth).
- * Milestones remain in settings.
  */
 export const updateAboutContent = asyncHandler(async (req: Request, res: Response) => {
   const content = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
   if (!content || typeof content !== 'object') {
     throw new ApiError(400, 'Invalid content data provided');
@@ -108,7 +66,7 @@ export const updateAboutContent = asyncHandler(async (req: Request, res: Respons
 
   // ── Text Content & Milestones: write to settings ────────────────────────────────────────
   const settingKeys = [
-    'ABOUT_MILESTONES', 'ABOUT_ANTHEM', 'ABOUT_OUR_STORY', 
+    'ABOUT_MILESTONES', 'ABOUT_ANTHEM', 'ABOUT_OUR_STORY',
     'ABOUT_OVERVIEW', 'ABOUT_VISION', 'ABOUT_MISSION', 'ABOUT_OBJECTIVES'
   ];
 
@@ -116,7 +74,7 @@ export const updateAboutContent = asyncHandler(async (req: Request, res: Respons
     if (sanitizedContent[key] !== undefined) {
       const val = typeof sanitizedContent[key] === 'object' ? JSON.stringify(sanitizedContent[key]) : sanitizedContent[key];
       const type = typeof sanitizedContent[key] === 'object' ? 'json' : 'text';
-      
+
       const [updateResult]: any = await pool.query(
         'UPDATE settings SET value = ?, type = ?, updatedAt = CURRENT_TIMESTAMP WHERE key_name = ?',
         [val, type, key]
@@ -128,67 +86,6 @@ export const updateAboutContent = asyncHandler(async (req: Request, res: Respons
           [key, val, type]
         );
       }
-    }
-  }
-
-  // ── Leadership messages: write to administration_members ──────────────────
-  const fileFieldMap: Record<LeadershipKey, string> = {
-    DIRECTOR_MESSAGE: 'director_image',
-    PRINCIPAL_MESSAGE: 'principal_image',
-    REGISTRAR_MESSAGE: 'registrar_image',
-  };
-
-  for (const [msgKey, adminId] of Object.entries(LEADERSHIP_IDS) as [LeadershipKey, string][]) {
-    const incoming = sanitizedContent[msgKey];
-    if (incoming === undefined) continue;
-
-    // Fetch current row to preserve existing image if no new one
-    const [existingRows]: any = await pool.query(
-      'SELECT name, imageUrl, quote, description FROM administration_members WHERE id = ?',
-      [adminId]
-    );
-    if (existingRows.length === 0) continue;
-    const existing = existingRows[0];
-
-    // Resolve image: uploaded file > passed URL > existing in DB
-    const fileKey = fileFieldMap[msgKey];
-    const newImagePath = (files && files[fileKey] && files[fileKey].length > 0)
-      ? getUploadPath(files[fileKey][0])
-      : null;
-
-    const finalImage = newImagePath || incoming.image || existing.imageUrl || null;
-
-    await pool.query(
-      `UPDATE administration_members
-       SET name        = COALESCE(?, name),
-           quote       = ?,
-           description = ?,
-           imageUrl    = COALESCE(?, imageUrl),
-           updatedAt   = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        incoming.name || existing.name || null,
-        incoming.quote !== undefined ? incoming.quote : (existing.quote || ''),
-        incoming.body !== undefined ? incoming.body : (existing.description || ''),
-        finalImage,
-        adminId,
-      ]
-    );
-
-    // Mirror update back to the linked staff row (if staffId is set)
-    const [adminRows]: any = await pool.query(
-      'SELECT staffId, imageUrl FROM administration_members WHERE id = ?',
-      [adminId]
-    );
-    if (adminRows.length > 0 && adminRows[0].staffId) {
-      await pool.query(
-        `UPDATE staff
-         SET name  = COALESCE(?, name),
-             image = COALESCE(?, image),
-             updatedAt = CURRENT_TIMESTAMP
-         WHERE id = ?`,
-        [incoming.name || null, finalImage || null, adminRows[0].staffId]
-      );
     }
   }
 

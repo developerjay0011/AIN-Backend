@@ -24,4 +24,8 @@ export const initialSettings = [
     { key_name: 'ADMIN_DASHBOARD_URL', value: 'http://admin.edu-track.com:3003', label: 'Admin Dashboard Base URL', group_name: 'General' },
     { key_name: 'OAT_REGISTRATION_LINK', value: 'https://ainguwahati.cbtexam.in/Home/home.aspx', label: 'OAT Registration Link', group_name: 'Admissions' },
     { key_name: 'OAT_REGISTRATION_VISIBLE', value: 'true', label: 'Show OAT Registration Button', group_name: 'Admissions' },
+    { key_name: 'WELCOME_DESCRIPTION', value: "It is North East India's premiere Nursing Institute recognized by Indian Nursing Council (INC) New Delhi & Assam Nurses' Midwives' & Health Visitors' Council, Guwahati.\n\nAIN is affiliated to the Srimanta Sankaradeva University of Health Sciences, Assam.", label: 'Welcome Description', group_name: 'Welcome Section' },
+    { key_name: 'WELCOME_ACRE_CAMPUS', value: '4+', label: 'Acre Campus Value', group_name: 'Welcome Section' },
+    { key_name: 'WELCOME_YEARS_EXCELLENCE', value: '25+', label: 'Years of Excellence Value', group_name: 'Welcome Section' },
+    { key_name: 'WELCOME_PLACEMENT_SUPPORT', value: '100%', label: 'Placement Support Value', group_name: 'Welcome Section' },
 ];

@@ -7,7 +7,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 export const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
   // Total Counts for Primary Modules
   const [noticesCount] = await pool.query('SELECT COUNT(*) as count FROM notices');
-  const [staffCount] = await pool.query('SELECT COUNT(DISTINCT name) as count FROM (SELECT name FROM staff UNION SELECT name FROM administration_members) as all_staff');
+  const [staffCount] = await pool.query('SELECT COUNT(DISTINCT name) as count FROM staff');
   const [achievementsCount] = await pool.query('SELECT COUNT(*) as count FROM achievements');
 
   // Aggregated Media Count (Images, Videos, and Documents)
@@ -22,7 +22,6 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     { table: 'alumni_milestones', column: 'imageUrl', hasCreatedAt: true },
     { table: 'notice_links', column: 'url', hasCreatedAt: false },
     { table: 'aqars', column: 'documentUrl', hasCreatedAt: true },
-    { table: 'administration_members', column: 'imageUrl', hasCreatedAt: true },
     { table: 'courses', column: 'image', hasCreatedAt: true }
   ];
 
@@ -41,13 +40,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
 
   // Trends (Last 7 Days) for other modules
   const [newNotices] = await pool.query("SELECT COUNT(*) as count FROM notices WHERE createdAt >= NOW() - INTERVAL 7 DAY");
-  const [newStaff] = await pool.query(`
-    SELECT COUNT(DISTINCT name) as count FROM (
-      SELECT name FROM staff WHERE createdAt >= NOW() - INTERVAL 7 DAY
-      UNION
-      SELECT name FROM administration_members WHERE createdAt >= NOW() - INTERVAL 7 DAY
-    ) as new_staff
-  `);
+  const [newStaff] = await pool.query("SELECT COUNT(DISTINCT name) as count FROM staff WHERE createdAt >= NOW() - INTERVAL 7 DAY");
   const [newAchievements] = await pool.query("SELECT COUNT(*) as count FROM achievements WHERE createdAt >= NOW() - INTERVAL 7 DAY");
 
   res.json(ApiResponse.success({

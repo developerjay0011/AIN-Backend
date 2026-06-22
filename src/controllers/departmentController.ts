@@ -12,14 +12,27 @@ export const getDepartments = asyncHandler(async (req: Request, res: Response) =
   let [departments] = await pool.query('SELECT * FROM departments');
   let deptRows = departments as any[];
 
-  // Parse JSON areas and facilities for frontend
-  const parsedDepts = deptRows.map(row => ({
-    ...row,
-    areas: typeof row.areas === 'string' ? JSON.parse(row.areas) : row.areas,
-    facilities: typeof row.facilities === 'string' ? JSON.parse(row.facilities) : (row.facilities || [])
-  }));
+  // Parse JSON areas and facilities for frontend, and dynamically resolve teaching faculty
+  const parsedDepts = [];
+  for (const row of deptRows) {
+    const [staffMembers]: any = await pool.query(
+      `SELECT * FROM staff 
+       WHERE department = ? OR department = ? OR department LIKE ? OR department LIKE ?`,
+      [row.id, row.name, `%${row.shortName}%`, `%${row.name}%`]
+    );
 
-  res.json(ApiResponse.success(formatDataUrls(parsedDepts, []), 'Departments fetched successfully'));
+    const formattedStaff = formatDataUrls(staffMembers, ['image']);
+
+    parsedDepts.push({
+      ...row,
+      areas: typeof row.areas === 'string' ? JSON.parse(row.areas) : row.areas,
+      facilities: typeof row.facilities === 'string' ? JSON.parse(row.facilities) : (row.facilities || []),
+      faculty: staffMembers.length,
+      facultyMembers: formattedStaff
+    });
+  }
+
+  res.json(ApiResponse.success(parsedDepts, 'Departments fetched successfully'));
 });
 
 /**
@@ -30,9 +43,12 @@ export const updateDepartment = asyncHandler(async (req: Request, res: Response)
   const name = sanitizeString(req.body.name);
   const shortName = sanitizeString(req.body.shortName);
   const overview = sanitizeString(req.body.overview);
-  const faculty = req.body.faculty;
   const clinicalHours = sanitizeString(req.body.clinicalHours);
   const hod = sanitizeString(req.body.hod);
+  const icon = req.body.icon ? sanitizeString(req.body.icon) : null;
+  const color = req.body.color ? sanitizeString(req.body.color) : null;
+  const iconBg = req.body.iconBg ? sanitizeString(req.body.iconBg) : null;
+  const iconColor = req.body.iconColor ? sanitizeString(req.body.iconColor) : null;
   let { areas, facilities } = req.body;
 
   if (Array.isArray(areas)) {
@@ -48,8 +64,8 @@ export const updateDepartment = asyncHandler(async (req: Request, res: Response)
   }
 
   const [result] = await pool.query(
-    'UPDATE departments SET name = ?, shortName = ?, overview = ?, areas = ?, faculty = ?, clinicalHours = ?, hod = ?, facilities = ? WHERE id = ?',
-    [name, shortName, overview, areas, faculty, clinicalHours, hod, facilities, id]
+    'UPDATE departments SET name = ?, shortName = ?, overview = ?, areas = ?, clinicalHours = ?, hod = ?, facilities = ?, icon = ?, color = ?, iconBg = ?, iconColor = ? WHERE id = ?',
+    [name, shortName, overview, areas, clinicalHours, hod, facilities, icon, color, iconBg, iconColor, id]
   );
 
   if ((result as any).affectedRows === 0) {
@@ -65,5 +81,59 @@ export const updateDepartment = asyncHandler(async (req: Request, res: Response)
     facilities: typeof updatedRow.facilities === 'string' ? JSON.parse(updatedRow.facilities) : (updatedRow.facilities || [])
   };
 
-  res.json(ApiResponse.success(formatDataUrls(response, []), 'Department updated successfully'));
+  res.json(ApiResponse.success(response, 'Department updated successfully'));
 });
+
+/**
+ * Create a new department
+ */
+export const createDepartment = asyncHandler(async (req: Request, res: Response) => {
+  const name = sanitizeString(req.body.name);
+  const shortName = sanitizeString(req.body.shortName);
+  const overview = sanitizeString(req.body.overview);
+  const clinicalHours = sanitizeString(req.body.clinicalHours);
+  const hod = sanitizeString(req.body.hod);
+  const icon = req.body.icon ? sanitizeString(req.body.icon) : null;
+  const color = req.body.color ? sanitizeString(req.body.color) : null;
+  const iconBg = req.body.iconBg ? sanitizeString(req.body.iconBg) : null;
+  const iconColor = req.body.iconColor ? sanitizeString(req.body.iconColor) : null;
+  let { areas, facilities } = req.body;
+
+  if (Array.isArray(areas)) {
+    areas = JSON.stringify(areas.map(a => sanitizeString(a)));
+  } else if (typeof areas === 'string') {
+    areas = sanitizeString(areas);
+  } else {
+    areas = JSON.stringify([]);
+  }
+
+  if (Array.isArray(facilities)) {
+    facilities = JSON.stringify(facilities.map(f => sanitizeString(f)));
+  } else if (typeof facilities === 'string') {
+    facilities = sanitizeString(facilities);
+  } else {
+    facilities = JSON.stringify([]);
+  }
+
+  // Generate ID based on shortName slug
+  const slug = shortName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const id = `depart_${slug || Date.now()}`;
+
+  await pool.query(
+    'INSERT INTO departments (id, name, shortName, overview, areas, clinicalHours, hod, facilities, icon, color, iconBg, iconColor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, name, shortName, overview, areas, clinicalHours, hod, facilities, icon, color, iconBg, iconColor]
+  );
+
+  const [inserted] = await pool.query('SELECT * FROM departments WHERE id = ?', [id]);
+  const row = (inserted as any[])[0];
+
+  const response = {
+    ...row,
+    areas: typeof row.areas === 'string' ? JSON.parse(row.areas) : row.areas,
+    facilities: typeof row.facilities === 'string' ? JSON.parse(row.facilities) : (row.facilities || []),
+    facultyMembers: []
+  };
+
+  res.status(201).json(ApiResponse.success(response, 'Department created successfully'));
+});
+

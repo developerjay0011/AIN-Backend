@@ -182,4 +182,36 @@ export const seedAlumni = async () => {
         [`SET-${Date.now()}-ALUMNI_CON`, settingKey, settingVal, 'Alumni Constitution PDF URL', 'Alumni', 'text']
     );
     console.log('✅ Seeded ALUMNI_CONSTITUTION_PDF_URL setting.');
+
+    // 10. Seeding aims and objectives settings
+    await pool.query(
+        'REPLACE INTO settings (id, key_name, value, label, group_name, type) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+            `SET-${Date.now()}-ALUMNI_AIMS_IMG`,
+            'ALUMNI_AIMS_IMAGE',
+            '/uploads/images/about/alumni-gathering.jpg',
+            'Alumni Aims & Objectives Image',
+            'Alumni',
+            'text'
+        ]
+    );
+    await pool.query(
+        'REPLACE INTO settings (id, key_name, value, label, group_name, type) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+            `SET-${Date.now()}-ALUMNI_AIMS_LST`,
+            'ALUMNI_AIMS_LIST',
+            JSON.stringify([
+                "To maintain a strong and active network of graduates for continuous professional cooperation.",
+                "To support the institute in its academic and infrastructure development goals.",
+                "To organize workshops, guest lectures, and mentorship programs for existing students.",
+                "To raise funds for scholarships, endowments, and charitable operations of the association.",
+                "To foster continuous professional education for nursing and medical practitioners.",
+                "To celebrate and promote the achievements of our distinguished graduates globally on boards."
+            ]),
+            'Alumni Aims & Objectives List',
+            'Alumni',
+            'json'
+        ]
+    );
+    console.log('✅ Seeded ALUMNI_AIMS_IMAGE and ALUMNI_AIMS_LIST settings.');
 };

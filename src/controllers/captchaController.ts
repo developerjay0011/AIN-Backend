@@ -74,9 +74,17 @@ export const generateCaptcha = (req: Request, res: Response) => {
   svg += `</svg>`;
 
 
+  // Send devText (for auto-fill) only when running on the local dev DB
+  const isLocalDev =
+    process.env.DB_HOST === 'localhost' &&
+    process.env.DB_PORT === '3306' &&
+    process.env.DB_USER === 'root' &&
+    (process.env.DB_PASSWORD ?? '') === '' &&
+    process.env.DB_NAME === 'schooldb';
+
   res.json(ApiResponse.success({
     svg: Buffer.from(svg).toString('base64'), // Base64 for easy transport
     token,
-    devText: process.env.NODE_ENV === 'development' ? text : undefined
+    devText: isLocalDev ? text : undefined
   }, 'Captcha generated successfully'));
 };

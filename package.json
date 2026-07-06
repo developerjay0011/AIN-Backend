@@ -10,6 +10,7 @@
     "build": "rimraf ./dist && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:setup": "tsx src/utils/setupDb.ts",
+    "db:seed:settings": "tsx src/utils/seedSettings.ts",
     "db:seed": "tsx src/scripts/cleanupUploads.ts && tsx src/seeds/runSeeds.ts",
     "db:migrate": "tsx src/scripts/migrate.ts"
   },

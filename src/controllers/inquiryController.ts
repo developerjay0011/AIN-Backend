@@ -1,0 +1,168 @@
+import { Request, Response, NextFunction } from 'express';
+import pool from '../config/db.js';
+import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { sanitizeString } from '../utils/sanitize.js';
+import jwt from 'jsonwebtoken';
+import { asyncHandler } from '../utils/asyncHandler.js';
+
+/**
+ * Helper to verify CAPTCHA token and answer
+ */
+const verifyCaptcha = (token: string, answer: string) => {
+    if (!token || !answer) {
+        throw new ApiError(400, 'CAPTCHA verification is required');
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) throw new Error('JWT_SECRET not set');
+
+    let decoded: { captcha: string };
+    try {
+        decoded = jwt.verify(token, jwtSecret) as { captcha: string };
+    } catch (error: any) {
+        throw new ApiError(401, 'CAPTCHA expired or invalid. Please refresh.');
+    }
+
+    if (!decoded || !decoded.captcha) {
+        throw new ApiError(400, 'Invalid CAPTCHA token structure');
+    }
+
+    if (decoded.captcha.toUpperCase() !== answer.trim().toUpperCase()) {
+        throw new ApiError(400, 'Incorrect CAPTCHA answer. Please try again.');
+    }
+};
+
+
+
+// --- Admission Inquiries ---
+
+export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Response) => {
+    const raw = req.body;
+
+    const studentName = sanitizeString(raw.studentName);
+    const parentName  = sanitizeString(raw.parentName);
+    const email       = sanitizeString(raw.email);
+    const phone       = sanitizeString(raw.phone);
+    const grade       = sanitizeString(raw.grade);
+    const message     = sanitizeString(raw.message ?? '');
+
+    if (!studentName || !parentName || !email || !phone || !grade) {
+        throw new ApiError(400, 'Student Name, Parent Name, Email, Phone, and Grade are required');
+    }
+
+    // Verify CAPTCHA
+    verifyCaptcha(raw.captchaToken, raw.captchaAnswer);
+
+
+    const id = `ADM-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const query = `
+        INSERT INTO admission_inquiries (id, studentName, parentName, email, phone, grade, message, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')
+    `;
+
+    await pool.query(query, [id, studentName, parentName, email, phone, grade, message]);
+
+    res.status(201).json(ApiResponse.success({ id }, 'Admission inquiry submitted successfully'));
+});
+
+export const getAdmissionInquiries = asyncHandler(async (req: Request, res: Response) => {
+    const [rows] = await pool.query('SELECT * FROM admission_inquiries ORDER BY createdAt DESC');
+    res.json(ApiResponse.success(rows, 'Admission inquiries fetched successfully'));
+});
+
+export const updateAdmissionStatus = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+        throw new ApiError(400, 'Status is required');
+    }
+
+    const [result]: any = await pool.query(
+        'UPDATE admission_inquiries SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+        [status, id]
+    );
+
+    if (result.affectedRows === 0) {
+        throw new ApiError(404, 'Inquiry not found');
+    }
+
+    res.json(ApiResponse.success(null, 'Status updated successfully'));
+});
+
+export const deleteAdmissionInquiry = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const [result]: any = await pool.query('DELETE FROM admission_inquiries WHERE id = ?', [id]);
+
+    if (result.affectedRows === 0) {
+        throw new ApiError(404, 'Inquiry not found');
+    }
+
+    res.json(ApiResponse.success(null, 'Inquiry deleted successfully'));
+});
+
+// --- Contact Inquiries ---
+
+export const createContactInquiry = asyncHandler(async (req: Request, res: Response) => {
+    const raw = req.body;
+
+    const fullName = sanitizeString(raw.fullName);
+    const email   = sanitizeString(raw.email);
+    const phone   = sanitizeString(raw.phone ?? '');
+    const subject = sanitizeString(raw.subject);
+    const message = sanitizeString(raw.message);
+
+    if (!fullName || !email || !subject || !message) {
+        throw new ApiError(400, 'Full Name, Email, Subject, and Message are required');
+    }
+
+    // Verify CAPTCHA
+    verifyCaptcha(raw.captchaToken, raw.captchaAnswer);
+
+
+    const id = `CON-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const query = `
+        INSERT INTO contact_inquiries (id, fullName, email, phone, subject, message, status)
+        VALUES (?, ?, ?, ?, ?, ?, 'New')
+    `;
+
+    await pool.query(query, [id, fullName, email, phone, subject, message]);
+
+    res.status(201).json(ApiResponse.success({ id }, 'Message sent successfully'));
+});
+
+export const getContactInquiries = asyncHandler(async (req: Request, res: Response) => {
+    const [rows] = await pool.query('SELECT * FROM contact_inquiries ORDER BY createdAt DESC');
+    res.json(ApiResponse.success(rows, 'Contact inquiries fetched successfully'));
+});
+
+export const updateContactStatus = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+        throw new ApiError(400, 'Status is required');
+    }
+
+    const [result]: any = await pool.query(
+        'UPDATE contact_inquiries SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+        [status, id]
+    );
+
+    if (result.affectedRows === 0) {
+        throw new ApiError(404, 'Inquiry not found');
+    }
+
+    res.json(ApiResponse.success(null, 'Status updated successfully'));
+});
+
+export const deleteContactInquiry = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const [result]: any = await pool.query('DELETE FROM contact_inquiries WHERE id = ?', [id]);
+
+    if (result.affectedRows === 0) {
+        throw new ApiError(404, 'Inquiry not found');
+    }
+
+    res.json(ApiResponse.success(null, 'Inquiry deleted successfully'));
+});

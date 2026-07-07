@@ -61,9 +61,10 @@ export const seedNotices = async () => {
     }
 
     for (const [id, noticeId, label, url] of links) {
+        const type = label.toLowerCase() === 'form' ? 'form' : 'attachment';
         await pool.query(
-            'REPLACE INTO notice_links (id, noticeId, label, url) VALUES (?, ?, ?, ?)',
-            [id, noticeId, label, url]
+            'REPLACE INTO notice_links (id, noticeId, label, url, type) VALUES (?, ?, ?, ?, ?)',
+            [id, noticeId, label, url, type]
         );
     }
     console.log(`✅ Seeded ${notices.length} notices and ${links.length} attachments.`);

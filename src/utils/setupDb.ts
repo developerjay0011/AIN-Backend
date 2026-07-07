@@ -118,6 +118,7 @@ const setupDatabase = async () => {
         noticeId VARCHAR(255),
         label VARCHAR(255),
         url TEXT,
+        type VARCHAR(50) DEFAULT 'attachment',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (noticeId) REFERENCES notices(id) ON DELETE CASCADE
@@ -456,7 +457,13 @@ const setupDatabase = async () => {
       }
       await pool.query(finalQuery);
     }
-    console.log('✅ All tables ensured.');
+        try {
+        await pool.query('ALTER TABLE notice_links ADD COLUMN type VARCHAR(50) DEFAULT "attachment"');
+      } catch (e) {
+        // column likely exists
+      }
+
+      console.log('✅ All tables ensured.');
 
     // Create default admin if none exists
     const [admins] = await pool.query('SELECT * FROM admins LIMIT 1');

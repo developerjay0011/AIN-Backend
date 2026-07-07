@@ -31,7 +31,7 @@ export const getAllNotices = asyncHandler(async (req: Request, res: Response) =>
   }
 
   for (let notice of filteredNotices) {
-    const [links] = await pool.query('SELECT label, url FROM notice_links WHERE noticeId = ?', [notice.id]);
+    const [links] = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [notice.id]);
     notice.links = links;
   }
 
@@ -59,26 +59,33 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
       const linksArray = typeof links === 'string' ? JSON.parse(links) : links;
       for (const link of linksArray) {
         const linkId = `LNK-${Date.now()}${Math.floor(Math.random() * 100)}`;
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, sanitizeString(link.label), sanitizeString(link.url)]);
+        const type = link.type || 'attachment';
+        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, sanitizeString(link.label), sanitizeString(link.url), type]);
       }
     }
 
     // Handle multiple uploaded files
     if (files) {
       if (files['document']) {
-        const fileUrl = getUploadPath(files['document'][0]);
-        const linkId = `LNK-${Date.now()}${Math.random().toString().slice(2, 5)}`;
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, 'Attachment', fileUrl]);
+        for (const file of files['document']) {
+          const fileUrl = getUploadPath(file);
+          const linkId = `LNK-${Date.now()}${Math.random().toString().slice(2, 6)}`;
+          const label = file.originalname || 'Attachment';
+          await pool.query('INSERT INTO notice_links (id, noticeId, label, url, type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, label, fileUrl, 'attachment']);
+        }
       }
       if (files['formFile']) {
-        const fileUrl = getUploadPath(files['formFile'][0]);
-        const linkId = `LNK-${Date.now() + 1}`; // Ensure uniqueness
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, 'Form', fileUrl]);
+        for (const file of files['formFile']) {
+          const fileUrl = getUploadPath(file);
+          const linkId = `LNK-${Date.now()}${Math.random().toString().slice(2, 6)}`;
+          const label = file.originalname || 'Form';
+          await pool.query('INSERT INTO notice_links (id, noticeId, label, url, type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, label, fileUrl, 'form']);
+        }
       }
     }
 
     const [newNotice] = await pool.query('SELECT * FROM notices WHERE id = ?', [noticeId]);
-    const [newLinks] = await pool.query('SELECT label, url FROM notice_links WHERE noticeId = ?', [noticeId]);
+    const [newLinks] = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [noticeId]);
     (newNotice as any)[0].links = newLinks;
     return res.status(201).json(ApiResponse.success(formatDataUrls((newNotice as any)[0], ['imageUrl', 'url']), 'Notice published successfully'));
   } else {
@@ -101,39 +108,43 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
     );
 
     // Smart Link Handling during update
-    // 1. If explicit links JSON is provided, perform a full sync
-    if (links) {
-      const linksArray = typeof links === 'string' ? JSON.parse(links) : links;
-      await pool.query('DELETE FROM notice_links WHERE noticeId = ?', [id]);
-      for (const link of linksArray) {
-        if (link.url) {
-          const lId = link.id || `LNK-${Date.now()}${Math.floor(Math.random() * 100)}`;
-          await pool.query(
-            'INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-            [lId.toString().substring(0, 20), id, sanitizeString(link.label), sanitizeString(link.url)]
-          );
+    // 1. If deletedFiles JSON is provided, remove those links
+    if (req.body.deletedFiles) {
+      const deletedFiles = typeof req.body.deletedFiles === 'string' 
+        ? JSON.parse(req.body.deletedFiles) 
+        : req.body.deletedFiles;
+      
+      if (Array.isArray(deletedFiles) && deletedFiles.length > 0) {
+        const placeholders = deletedFiles.map(() => '?').join(',');
+        await pool.query(
+          `DELETE FROM notice_links WHERE noticeId = ? AND id IN (${placeholders})`, 
+          [id, ...deletedFiles]
+        );
+      }
+    }
+
+    // 2. If physical files are uploaded, insert them
+    if (files) {
+      if (files['document']) {
+        for (const file of files['document']) {
+          const fileUrl = getUploadPath(file);
+          const linkId = `LNK-${Date.now()}${Math.random().toString().slice(2, 6)}`;
+          const label = file.originalname || 'Attachment';
+          await pool.query('INSERT INTO notice_links (id, noticeId, label, url, type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), id, label, fileUrl, 'attachment']);
+        }
+      }
+      if (files['formFile']) {
+        for (const file of files['formFile']) {
+          const fileUrl = getUploadPath(file);
+          const linkId = `LNK-${Date.now()}${Math.random().toString().slice(2, 6)}`;
+          const label = file.originalname || 'Form';
+          await pool.query('INSERT INTO notice_links (id, noticeId, label, url, type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), id, label, fileUrl, 'form']);
         }
       }
     }
 
-    // 2. If physical files are uploaded, replace ONLY the corresponding labeled links
-    if (files) {
-      if (files['document']) {
-        await pool.query("DELETE FROM notice_links WHERE noticeId = ? AND label = 'Attachment'", [id]);
-        const fileUrl = getUploadPath(files['document'][0]);
-        const linkId = `LNK-${Date.now()}${(Math.random() * 10).toFixed(0)}`;
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), id, 'Attachment', fileUrl]);
-      }
-      if (files['formFile']) {
-        await pool.query("DELETE FROM notice_links WHERE noticeId = ? AND label = 'Form'", [id]);
-        const fileUrl = getUploadPath(files['formFile'][0]);
-        const linkId = `LNK-${Date.now() + 1}`;
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, createdAt, updatedAt) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), id, 'Form', fileUrl]);
-      }
-    }
-
     const [updatedNotice] = await pool.query('SELECT * FROM notices WHERE id = ?', [id]);
-    const [currentLinks] = await pool.query('SELECT label, url FROM notice_links WHERE noticeId = ?', [id]);
+    const [currentLinks] = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [id]);
     (updatedNotice as any)[0].links = currentLinks;
     return res.json(ApiResponse.success(formatDataUrls((updatedNotice as any)[0], ['url']), 'Notice updated successfully'));
   }

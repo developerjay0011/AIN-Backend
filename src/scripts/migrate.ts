@@ -467,6 +467,13 @@ const migrate = async () => {
       // console.log(`✓ Table checked: ${name}`);
     }
 
+    try {
+      await pool.query('ALTER TABLE notice_links ADD COLUMN type VARCHAR(50) DEFAULT "attachment"');
+      console.log('✓ Migration: Added type column to notice_links');
+    } catch (e) {
+      // column likely exists
+    }
+
     console.log('🚀 Database migration complete!');
     process.exit(0);
   } catch (error: any) {

@@ -231,6 +231,22 @@ const migrate = async () => {
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
+      alumni_registrations: `
+        CREATE TABLE IF NOT EXISTS alumni_registrations (
+          id VARCHAR(50) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          dob VARCHAR(20) NOT NULL,
+          gender VARCHAR(10) NOT NULL,
+          presentAddress TEXT NOT NULL,
+          correspondenceAddress TEXT NOT NULL,
+          courseName VARCHAR(100) NOT NULL,
+          yearOfJoining VARCHAR(10) NOT NULL,
+          yearOfPassingOut VARCHAR(10) NOT NULL,
+          presentOccupation VARCHAR(255) NOT NULL,
+          status ENUM('pending','approved','rejected') DEFAULT 'pending',
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
       alumni_executives: `
         CREATE TABLE IF NOT EXISTS alumni_executives (
           id VARCHAR(255) PRIMARY KEY,

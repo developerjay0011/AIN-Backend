@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,6 +69,11 @@ const getEssentialFiles = () => {
 const cleanup = () => {
     console.log('🧹 Starting smart cleanup of uploads folder...');
     
+    if (process.env.NODE_ENV === 'production') {
+        console.log('⚠️ Running in production. Smart cleanup of uploads folder is disabled to prevent accidental data loss.');
+        return;
+    }
+
     if (!fs.existsSync(UPLOADS_DIR)) {
         console.log('⚠️ Uploads directory not found. Skipping.');
         return;

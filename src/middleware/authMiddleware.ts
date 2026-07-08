@@ -16,7 +16,8 @@ const PROTECTED_GET_PATHS = [
 const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/inquiries/contact',
-  '/api/inquiries/admission'
+  '/api/inquiries/admission',
+  '/api/alumni/register'
 ];
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {

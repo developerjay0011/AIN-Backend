@@ -481,3 +481,112 @@ export const deleteConstitutionArticle = asyncHandler(async (req: Request, res: 
   res.json(ApiResponse.success(null, 'Constitution article deleted successfully'));
 });
 
+/**
+ * PUBLIC — Submit Alumni Registration
+ * POST /alumni/register
+ */
+export const handleAlumniRegistration = asyncHandler(async (req: Request, res: Response) => {
+  const {
+    name, dob, gender,
+    presentAddress, correspondenceAddress,
+    courseName, yearOfJoining, yearOfPassingOut,
+    presentOccupation
+  } = sanitizeObject(req.body);
+
+  if (!name || !dob || !gender || !presentAddress || !correspondenceAddress
+      || !courseName || !yearOfJoining || !yearOfPassingOut || !presentOccupation) {
+    throw new ApiError(400, 'All required fields must be filled in');
+  }
+
+  const newId = `REG-${Date.now()}`;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS alumni_registrations (
+      id VARCHAR(50) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      dob VARCHAR(20) NOT NULL,
+      gender VARCHAR(10) NOT NULL,
+      presentAddress TEXT NOT NULL,
+      correspondenceAddress TEXT NOT NULL,
+      courseName VARCHAR(100) NOT NULL,
+      yearOfJoining VARCHAR(10) NOT NULL,
+      yearOfPassingOut VARCHAR(10) NOT NULL,
+      presentOccupation VARCHAR(255) NOT NULL,
+      status ENUM('pending','approved','rejected') DEFAULT 'pending',
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(
+    `INSERT INTO alumni_registrations
+      (id, name, dob, gender, presentAddress, correspondenceAddress, courseName, yearOfJoining, yearOfPassingOut, presentOccupation)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [newId, name, dob, gender, presentAddress, correspondenceAddress, courseName, yearOfJoining, yearOfPassingOut, presentOccupation]
+  );
+
+  const [newReg] = await pool.query('SELECT * FROM alumni_registrations WHERE id = ?', [newId]);
+  return res.status(201).json(ApiResponse.success((newReg as any)[0], 'Registration submitted successfully. We will get back to you shortly.'));
+});
+
+/**
+ * ADMIN — Get All Alumni Registrations
+ * GET /alumni/registrations
+ */
+export const getAlumniRegistrations = asyncHandler(async (req: Request, res: Response) => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS alumni_registrations (
+      id VARCHAR(50) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      dob VARCHAR(20) NOT NULL,
+      gender VARCHAR(10) NOT NULL,
+      presentAddress TEXT NOT NULL,
+      correspondenceAddress TEXT NOT NULL,
+      courseName VARCHAR(100) NOT NULL,
+      yearOfJoining VARCHAR(10) NOT NULL,
+      yearOfPassingOut VARCHAR(10) NOT NULL,
+      presentOccupation VARCHAR(255) NOT NULL,
+      status ENUM('pending','approved','rejected') DEFAULT 'pending',
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+
+  const [rows] = await pool.query('SELECT * FROM alumni_registrations ORDER BY createdAt DESC');
+  res.json(ApiResponse.success(rows, 'Alumni registrations fetched successfully'));
+});
+
+/**
+ * ADMIN — Update Registration Status
+ * PUT /alumni/registrations/:id
+ */
+export const updateRegistrationStatus = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { status } = sanitizeObject(req.body);
+
+  if (!['pending', 'approved', 'rejected'].includes(status)) {
+    throw new ApiError(400, 'Status must be pending, approved, or rejected');
+  }
+
+  const [existing]: any = await pool.query('SELECT * FROM alumni_registrations WHERE id = ?', [id]);
+  if (existing.length === 0) {
+    throw new ApiError(404, 'Registration not found');
+  }
+
+  await pool.query('UPDATE alumni_registrations SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [status, id]);
+  const [updated] = await pool.query('SELECT * FROM alumni_registrations WHERE id = ?', [id]);
+  res.json(ApiResponse.success((updated as any)[0], 'Registration status updated successfully'));
+});
+
+/**
+ * ADMIN — Delete Alumni Registration
+ * DELETE /alumni/registrations/:id
+ */
+export const deleteAlumniRegistration = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const [result] = await pool.query('DELETE FROM alumni_registrations WHERE id = ?', [id]);
+  if ((result as any).affectedRows === 0) {
+    throw new ApiError(404, 'Registration not found');
+  }
+  res.json(ApiResponse.success(null, 'Registration deleted successfully'));
+});

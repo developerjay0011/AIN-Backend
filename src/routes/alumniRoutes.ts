@@ -24,7 +24,11 @@ import {
   deleteCommitteeMember,
   getAlumniConstitution,
   handleConstitutionPost,
-  deleteConstitutionArticle
+  deleteConstitutionArticle,
+  handleAlumniRegistration,
+  getAlumniRegistrations,
+  updateRegistrationStatus,
+  deleteAlumniRegistration
 } from '../controllers/alumniController.js';
 
 const router = Router();
@@ -67,5 +71,11 @@ router.delete('/committee/:id', authMiddleware, deleteCommitteeMember);
 router.get('/constitution', getAlumniConstitution);
 router.post('/constitution', authMiddleware, handleConstitutionPost);
 router.delete('/constitution/:id', authMiddleware, deleteConstitutionArticle);
+
+// Alumni Registrations (public submit, admin read/manage)
+router.post('/register', handleAlumniRegistration);
+router.get('/registrations', authMiddleware, getAlumniRegistrations);
+router.put('/registrations/:id', authMiddleware, updateRegistrationStatus);
+router.delete('/registrations/:id', authMiddleware, deleteAlumniRegistration);
 
 export default router;

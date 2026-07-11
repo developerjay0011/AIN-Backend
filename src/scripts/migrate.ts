@@ -68,6 +68,7 @@ const migrate = async () => {
           type VARCHAR(100),
           description TEXT,
           critical BOOLEAN DEFAULT 0,
+          externalLinks TEXT,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
@@ -243,6 +244,8 @@ const migrate = async () => {
           yearOfJoining VARCHAR(10) NOT NULL,
           yearOfPassingOut VARCHAR(10) NOT NULL,
           presentOccupation VARCHAR(255) NOT NULL,
+          contactNumber VARCHAR(50),
+          email VARCHAR(255),
           status ENUM('pending','approved','rejected') DEFAULT 'pending',
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -470,6 +473,27 @@ const migrate = async () => {
     try {
       await pool.query('ALTER TABLE notice_links ADD COLUMN type VARCHAR(50) DEFAULT "attachment"');
       console.log('✓ Migration: Added type column to notice_links');
+    } catch (e) {
+      // column likely exists
+    }
+
+    try {
+      await pool.query('ALTER TABLE notices ADD COLUMN externalLinks TEXT');
+      console.log('✓ Migration: Added externalLinks column to notices');
+    } catch (e) {
+      // column likely exists
+    }
+
+    try {
+      await pool.query('ALTER TABLE alumni_registrations ADD COLUMN contactNumber VARCHAR(50)');
+      console.log('✓ Migration: Added contactNumber column to alumni_registrations');
+    } catch (e) {
+      // column likely exists
+    }
+
+    try {
+      await pool.query('ALTER TABLE alumni_registrations ADD COLUMN email VARCHAR(255)');
+      console.log('✓ Migration: Added email column to alumni_registrations');
     } catch (e) {
       // column likely exists
     }

@@ -31,15 +31,20 @@ export const getAllNotices = asyncHandler(async (req: Request, res: Response) =>
   }
 
   for (let notice of filteredNotices) {
-    const [links] = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [notice.id]);
-    notice.links = links;
+    const [links]: any = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [notice.id]);
+    notice.attachments = links.filter((l: any) => l.type === 'attachment' || l.type === 'form');
+    try {
+      notice.externalLinks = notice.externalLinks ? (typeof notice.externalLinks === 'string' ? JSON.parse(notice.externalLinks) : notice.externalLinks) : [];
+    } catch (e) {
+      notice.externalLinks = [];
+    }
   }
 
   res.json(ApiResponse.success(formatDataUrls(filteredNotices, ['url']), 'Notices fetched successfully'));
 });
 
 export const handleNoticePost = asyncHandler(async (req: Request, res: Response) => {
-  let { id, title, date, type, description, critical, links, expiryDate } = sanitizeObject(req.body);
+  let { id, title, date, type, description, critical, externalLinks, expiryDate } = sanitizeObject(req.body);
   date = formatDateToYYYYMMDD(date);
   const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
@@ -50,19 +55,18 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
 
     const noticeId = `NOT-${Date.now()}`;
     await pool.query(
-      'INSERT INTO notices (id, title, date, type, description, critical, expiryDate) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [noticeId, title, date, type, description, critical === 'true' || critical === true, expiryDate || '2027-01-01']
+      'INSERT INTO notices (id, title, date, type, description, critical, expiryDate, externalLinks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        noticeId,
+        title,
+        date,
+        type,
+        description,
+        critical === 'true' || critical === true,
+        expiryDate || '2027-01-01',
+        typeof externalLinks === 'string' ? externalLinks : JSON.stringify(externalLinks || [])
+      ]
     );
-
-    // Handle existing links from JSON string/array
-    if (links) {
-      const linksArray = typeof links === 'string' ? JSON.parse(links) : links;
-      for (const link of linksArray) {
-        const linkId = `LNK-${Date.now()}${Math.floor(Math.random() * 100)}`;
-        const type = link.type || 'attachment';
-        await pool.query('INSERT INTO notice_links (id, noticeId, label, url, type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)', [linkId.substring(0, 20), noticeId, sanitizeString(link.label), sanitizeString(link.url), type]);
-      }
-    }
 
     // Handle multiple uploaded files
     if (files) {
@@ -85,9 +89,15 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
     }
 
     const [newNotice] = await pool.query('SELECT * FROM notices WHERE id = ?', [noticeId]);
-    const [newLinks] = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [noticeId]);
-    (newNotice as any)[0].links = newLinks;
-    return res.status(201).json(ApiResponse.success(formatDataUrls((newNotice as any)[0], ['imageUrl', 'url']), 'Notice published successfully'));
+    const [newLinks]: any = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [noticeId]);
+    const noticeObj = (newNotice as any)[0];
+    noticeObj.attachments = newLinks.filter((l: any) => l.type === 'attachment' || l.type === 'form');
+    try {
+      noticeObj.externalLinks = noticeObj.externalLinks ? (typeof noticeObj.externalLinks === 'string' ? JSON.parse(noticeObj.externalLinks) : noticeObj.externalLinks) : [];
+    } catch (e) {
+      noticeObj.externalLinks = [];
+    }
+    return res.status(201).json(ApiResponse.success(formatDataUrls(noticeObj, ['imageUrl', 'url']), 'Notice published successfully'));
   } else {
     const [existing]: any = await pool.query('SELECT * FROM notices WHERE id = ?', [id]);
     if (existing.length === 0) {
@@ -102,9 +112,19 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
         description = COALESCE(?, description), 
         critical = ?,
         expiryDate = COALESCE(?, expiryDate),
+        externalLinks = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?`,
-      [title || null, date || null, type || null, description || null, critical === 'true' || critical === true, expiryDate || null, id]
+      [
+        title || null,
+        date || null,
+        type || null,
+        description || null,
+        critical === 'true' || critical === true,
+        expiryDate || null,
+        typeof externalLinks === 'string' ? externalLinks : JSON.stringify(externalLinks || []),
+        id
+      ]
     );
 
     // Smart Link Handling during update
@@ -144,9 +164,15 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
     }
 
     const [updatedNotice] = await pool.query('SELECT * FROM notices WHERE id = ?', [id]);
-    const [currentLinks] = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [id]);
-    (updatedNotice as any)[0].links = currentLinks;
-    return res.json(ApiResponse.success(formatDataUrls((updatedNotice as any)[0], ['url']), 'Notice updated successfully'));
+    const [currentLinks]: any = await pool.query('SELECT id, label, url, type FROM notice_links WHERE noticeId = ?', [id]);
+    const noticeObj = (updatedNotice as any)[0];
+    noticeObj.attachments = currentLinks.filter((l: any) => l.type === 'attachment' || l.type === 'form');
+    try {
+      noticeObj.externalLinks = noticeObj.externalLinks ? (typeof noticeObj.externalLinks === 'string' ? JSON.parse(noticeObj.externalLinks) : noticeObj.externalLinks) : [];
+    } catch (e) {
+      noticeObj.externalLinks = [];
+    }
+    return res.json(ApiResponse.success(formatDataUrls(noticeObj, ['url']), 'Notice updated successfully'));
   }
 });
 

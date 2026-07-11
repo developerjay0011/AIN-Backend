@@ -490,12 +490,18 @@ export const handleAlumniRegistration = asyncHandler(async (req: Request, res: R
     name, dob, gender,
     presentAddress, correspondenceAddress,
     courseName, yearOfJoining, yearOfPassingOut,
-    presentOccupation
+    presentOccupation, contactNumber, email
   } = sanitizeObject(req.body);
 
   if (!name || !dob || !gender || !presentAddress || !correspondenceAddress
-      || !courseName || !yearOfJoining || !yearOfPassingOut || !presentOccupation) {
-    throw new ApiError(400, 'All required fields must be filled in');
+      || !courseName || !yearOfJoining || !yearOfPassingOut || !presentOccupation
+      || !contactNumber || !email) {
+    throw new ApiError(400, 'All fields including contact number and email are required');
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new ApiError(400, 'Please provide a valid email address');
   }
 
   const newId = `REG-${Date.now()}`;
@@ -512,6 +518,8 @@ export const handleAlumniRegistration = asyncHandler(async (req: Request, res: R
       yearOfJoining VARCHAR(10) NOT NULL,
       yearOfPassingOut VARCHAR(10) NOT NULL,
       presentOccupation VARCHAR(255) NOT NULL,
+      contactNumber VARCHAR(50),
+      email VARCHAR(255),
       status ENUM('pending','approved','rejected') DEFAULT 'pending',
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -520,9 +528,9 @@ export const handleAlumniRegistration = asyncHandler(async (req: Request, res: R
 
   await pool.query(
     `INSERT INTO alumni_registrations
-      (id, name, dob, gender, presentAddress, correspondenceAddress, courseName, yearOfJoining, yearOfPassingOut, presentOccupation)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [newId, name, dob, gender, presentAddress, correspondenceAddress, courseName, yearOfJoining, yearOfPassingOut, presentOccupation]
+      (id, name, dob, gender, presentAddress, correspondenceAddress, courseName, yearOfJoining, yearOfPassingOut, presentOccupation, contactNumber, email)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [newId, name, dob, gender, presentAddress, correspondenceAddress, courseName, yearOfJoining, yearOfPassingOut, presentOccupation, contactNumber, email]
   );
 
   const [newReg] = await pool.query('SELECT * FROM alumni_registrations WHERE id = ?', [newId]);

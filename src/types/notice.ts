@@ -3,6 +3,7 @@ export interface NoticeLink {
   noticeId: string;
   label: string;
   url: string;
+  type?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -14,7 +15,8 @@ export interface Notice {
   type: string;
   description?: string;
   critical: boolean;
-  links?: NoticeLink[];
+  attachments?: NoticeLink[];
+  externalLinks?: NoticeLink[];
   createdAt?: string;
   updatedAt?: string;
 }

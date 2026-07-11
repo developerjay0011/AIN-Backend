@@ -214,4 +214,76 @@ export const seedAlumni = async () => {
         ]
     );
     console.log('✅ Seeded ALUMNI_AIMS_IMAGE and ALUMNI_AIMS_LIST settings.');
+
+    // 11. Seeding mock alumni registrations
+    const mockRegistrations = [
+        {
+            id: 'REG-1715884200001',
+            name: 'Ananya Gogoi',
+            dob: '1998-04-12',
+            gender: 'Female',
+            presentAddress: 'House No 42, Zoo Road, Guwahati, Assam',
+            correspondenceAddress: 'House No 42, Zoo Road, Guwahati, Assam',
+            courseName: 'BSc Nursing',
+            yearOfJoining: '2016',
+            yearOfPassingOut: '2020',
+            presentOccupation: 'Staff Nurse at Guwahati Medical College Hospital',
+            contactNumber: '+91 98765 43210',
+            email: 'ananya.gogoi@gmch.gov.in',
+            status: 'pending'
+        },
+        {
+            id: 'REG-1715884200002',
+            name: 'Rupali Kalita',
+            dob: '1997-09-25',
+            gender: 'Female',
+            presentAddress: 'Block C, Flat 302, Green Valley Apartments, Kahilipara, Guwahati',
+            correspondenceAddress: 'Block C, Flat 302, Green Valley Apartments, Kahilipara, Guwahati',
+            courseName: 'MSc Nursing',
+            yearOfJoining: '2018',
+            yearOfPassingOut: '2020',
+            presentOccupation: 'Clinical Instructor at Regional College of Nursing',
+            contactNumber: '+91 87654 32109',
+            email: 'rupali.k@rcn.edu.in',
+            status: 'approved'
+        },
+        {
+            id: 'REG-1715884200003',
+            name: 'Jaya Das',
+            dob: '1999-01-05',
+            gender: 'Female',
+            presentAddress: 'Assam Type House, Noonmati, Guwahati',
+            correspondenceAddress: 'Assam Type House, Noonmati, Guwahati',
+            courseName: 'BSc Nursing',
+            yearOfJoining: '2017',
+            yearOfPassingOut: '2021',
+            presentOccupation: 'Registered Nurse at Apollo International Hospital',
+            contactNumber: '+91 76543 21098',
+            email: 'jaya.das@apollo.com',
+            status: 'pending'
+        }
+    ];
+
+    console.log('🎓 Seeding Mock Alumni Registrations...');
+    for (const reg of mockRegistrations) {
+        await pool.query(
+            'REPLACE INTO alumni_registrations (id, name, dob, gender, presentAddress, correspondenceAddress, courseName, yearOfJoining, yearOfPassingOut, presentOccupation, contactNumber, email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+                reg.id,
+                reg.name,
+                reg.dob,
+                reg.gender,
+                reg.presentAddress,
+                reg.correspondenceAddress,
+                reg.courseName,
+                reg.yearOfJoining,
+                reg.yearOfPassingOut,
+                reg.presentOccupation,
+                reg.contactNumber,
+                reg.email,
+                reg.status
+            ]
+        );
+    }
+    console.log(`✅ Seeded ${mockRegistrations.length} mock alumni registrations.`);
 };

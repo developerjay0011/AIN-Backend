@@ -111,6 +111,7 @@ const setupDatabase = async () => {
         description TEXT,
         critical BOOLEAN DEFAULT 0,
         expiryDate VARCHAR(100),
+        externalLinks TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
@@ -271,6 +272,8 @@ const setupDatabase = async () => {
         yearOfJoining VARCHAR(10) NOT NULL,
         yearOfPassingOut VARCHAR(10) NOT NULL,
         presentOccupation VARCHAR(255) NOT NULL,
+        contactNumber VARCHAR(50),
+        email VARCHAR(255),
         status ENUM('pending','approved','rejected') DEFAULT 'pending',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -475,6 +478,21 @@ const setupDatabase = async () => {
     }
         try {
         await pool.query('ALTER TABLE notice_links ADD COLUMN type VARCHAR(50) DEFAULT "attachment"');
+      } catch (e) {
+        // column likely exists
+      }
+        try {
+        await pool.query('ALTER TABLE notices ADD COLUMN externalLinks TEXT');
+      } catch (e) {
+        // column likely exists
+      }
+        try {
+        await pool.query('ALTER TABLE alumni_registrations ADD COLUMN contactNumber VARCHAR(50)');
+      } catch (e) {
+        // column likely exists
+      }
+        try {
+        await pool.query('ALTER TABLE alumni_registrations ADD COLUMN email VARCHAR(255)');
       } catch (e) {
         // column likely exists
       }

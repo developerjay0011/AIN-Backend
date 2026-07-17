@@ -45,7 +45,7 @@ export const getAboutContent = asyncHandler(async (req: Request, res: Response) 
  * Update About Us content
  */
 export const updateAboutContent = asyncHandler(async (req: Request, res: Response) => {
-  const content = req.body.data ? JSON.parse(req.body.data) : req.body;
+  const content = req.body?.data ? JSON.parse(req.body.data) : req.body;
 
   if (!content || typeof content !== 'object') {
     throw new ApiError(400, 'Invalid content data provided');

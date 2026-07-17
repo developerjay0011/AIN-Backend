@@ -147,7 +147,7 @@ const migrate = async () => {
         CREATE TABLE IF NOT EXISTS settings (
           id VARCHAR(255) PRIMARY KEY,
           key_name VARCHAR(255) UNIQUE NOT NULL,
-          value TEXT,
+          value MEDIUMTEXT,
           label VARCHAR(255),
           group_name VARCHAR(100),
           type VARCHAR(50) DEFAULT 'text',
@@ -194,11 +194,11 @@ const migrate = async () => {
           id VARCHAR(255) PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           shortName VARCHAR(100) NOT NULL,
-          overview TEXT,
-          areas TEXT,
+          overview MEDIUMTEXT,
+          areas MEDIUMTEXT,
           clinicalHours VARCHAR(255),
           hod VARCHAR(255),
-          facilities TEXT,
+          facilities MEDIUMTEXT,
           icon VARCHAR(255) DEFAULT NULL,
           color VARCHAR(255) DEFAULT NULL,
           iconBg VARCHAR(255) DEFAULT NULL,
@@ -496,6 +496,22 @@ const migrate = async () => {
       console.log('✓ Migration: Added email column to alumni_registrations');
     } catch (e) {
       // column likely exists
+    }
+
+    try {
+      await pool.query('ALTER TABLE settings MODIFY COLUMN value MEDIUMTEXT');
+      console.log('✓ Migration: Modified settings.value to MEDIUMTEXT');
+    } catch (e) {
+      console.error('Error modifying settings.value:', e);
+    }
+
+    try {
+      await pool.query('ALTER TABLE departments MODIFY COLUMN overview MEDIUMTEXT');
+      await pool.query('ALTER TABLE departments MODIFY COLUMN areas MEDIUMTEXT');
+      await pool.query('ALTER TABLE departments MODIFY COLUMN facilities MEDIUMTEXT');
+      console.log('✓ Migration: Modified departments columns to MEDIUMTEXT');
+    } catch (e) {
+      console.error('Error modifying departments columns:', e);
     }
 
     console.log('🚀 Database migration complete!');

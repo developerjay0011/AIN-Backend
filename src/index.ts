@@ -66,20 +66,33 @@ app.use(cors({
       return callback(null, true);
     }
 
-    const allowedOrigins = corsOrigin.split(',');
+    // Clean up origins (remove whitespace and trailing slashes)
+    const allowedOrigins = corsOrigin.split(',').map(o => o.trim().replace(/\/$/, ''));
+
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
+
+    // Clean up request origin
+    const requestOrigin = origin.trim().replace(/\/$/, '');
+
+    if (!allowedOrigins.includes(requestOrigin)) {
+      console.warn(`[CORS Blocked] Origin: ${requestOrigin} | Allowed: ${allowedOrigins.join(', ')}`);
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
     return callback(null, true);
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
+// Explicitly handle pre-flight requests (Removed due to Express 5 path-to-regexp changes; app.use(cors()) is sufficient)
 app.use(morgan('dev'));
 app.use(express.json());
+
+// Trust the reverse proxy (crucial for cPanel/Apache/LiteSpeed) so rate limiters track real client IPs
+app.set('trust proxy', 1);
 
 // Rate Limiting
 const apiLimiter = rateLimit({

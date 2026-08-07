@@ -44,7 +44,12 @@ const setupDatabase = async () => {
       'campus_facilities',
       'hostel_details',
       'sna_details',
-      'student_supports'
+      'student_supports',
+      'research_initiatives',
+      'research_irc_members',
+      'research_bulletins',
+      'research_cell',
+      'publications'
     ];
 
     await pool.query('SET FOREIGN_KEY_CHECKS = 0');
@@ -466,6 +471,63 @@ const setupDatabase = async () => {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (recognitionTypeId) REFERENCES recognition_types(id) ON DELETE SET NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS research_initiatives (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        lead VARCHAR(255) NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS research_irc_members (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        role VARCHAR(100) NOT NULL,
+        specialization VARCHAR(255) NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS research_bulletins (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        date VARCHAR(100) NOT NULL,
+        size VARCHAR(50) NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        description TEXT,
+        fileUrl VARCHAR(255) NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS research_cell (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        description TEXT NOT NULL,
+        points TEXT NOT NULL,
+        image VARCHAR(255) DEFAULT NULL,
+        ircDescription TEXT DEFAULT NULL,
+        submissionSteps TEXT DEFAULT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS publications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        type VARCHAR(50) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        author VARCHAR(255) DEFAULT NULL,
+        initials VARCHAR(10) DEFAULT NULL,
+        department VARCHAR(255) DEFAULT NULL,
+        date VARCHAR(100) DEFAULT NULL,
+        venue VARCHAR(255) DEFAULT NULL,
+        speaker VARCHAR(255) DEFAULT NULL,
+        topic VARCHAR(255) DEFAULT NULL,
+        description TEXT DEFAULT NULL,
+        img VARCHAR(255) DEFAULT NULL,
+        fileUrl VARCHAR(255) DEFAULT NULL,
+        papers TEXT DEFAULT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`
     ];
 
@@ -475,6 +537,12 @@ const setupDatabase = async () => {
         finalQuery += ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci';
       }
       await pool.query(finalQuery);
+    }
+
+    try {
+      await pool.query('ALTER TABLE publications DROP COLUMN doi');
+    } catch (e) {
+      // column likely already dropped or does not exist
     }
         try {
         await pool.query('ALTER TABLE notice_links ADD COLUMN type VARCHAR(50) DEFAULT "attachment"');

@@ -12,6 +12,17 @@ export const getDepartments = asyncHandler(async (req: Request, res: Response) =
   let [departments] = await pool.query('SELECT * FROM departments');
   let deptRows = departments as any[];
 
+  const getDesignationRank = (designation: string | null, role: string | null): number => {
+    const title = (designation || role || '').toLowerCase();
+    if (title.includes('principal') && !title.includes('vice')) return 1;
+    if (title.includes('vice-principal') || (title.includes('vice') && title.includes('principal'))) return 2;
+    if (title.includes('professor') && !title.includes('associate') && !title.includes('assistant')) return 3;
+    if (title.includes('associate professor')) return 4;
+    if (title.includes('assistant professor') || title.includes('asst professor')) return 5;
+    if (title.includes('tutor')) return 6;
+    return 99;
+  };
+
   // Parse JSON areas and facilities for frontend, and dynamically resolve teaching faculty
   const parsedDepts = [];
   for (const row of deptRows) {
@@ -22,6 +33,14 @@ export const getDepartments = asyncHandler(async (req: Request, res: Response) =
     );
 
     const formattedStaff = formatDataUrls(staffMembers, ['image']);
+
+    // Sort staff by rank hierarchy, then by name alphabetically
+    formattedStaff.sort((a: any, b: any) => {
+      const rankA = getDesignationRank(a.designation, a.role);
+      const rankB = getDesignationRank(b.designation, b.role);
+      if (rankA !== rankB) return rankA - rankB;
+      return (a.name || '').localeCompare(b.name || '');
+    });
 
     parsedDepts.push({
       ...row,

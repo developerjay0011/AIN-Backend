@@ -30,4 +30,12 @@ export const initialSettings = [
     { key_name: 'WELCOME_ACRE_CAMPUS', value: '4+', label: 'Acre Campus Value', group_name: 'Welcome Section' },
     { key_name: 'WELCOME_YEARS_EXCELLENCE', value: '25+', label: 'Years of Excellence Value', group_name: 'Welcome Section' },
     { key_name: 'WELCOME_PLACEMENT_SUPPORT', value: '100%', label: 'Placement Support Value', group_name: 'Welcome Section' },
+    { key_name: 'RTI_CPIO_NAME', value: 'Lt Col M. R. Sharma (Retd)', label: 'CPIO Officer Name', group_name: 'RTI' },
+    { key_name: 'RTI_CPIO_DESIGNATION', value: 'Registrar & CPIO, AIN Guwahati', label: 'CPIO Designation', group_name: 'RTI' },
+    { key_name: 'RTI_CPIO_PHONE', value: '+91 361 2304600', label: 'CPIO Phone Number', group_name: 'RTI' },
+    { key_name: 'RTI_CPIO_EMAIL', value: 'cpio@ainguwahati.org', label: 'CPIO Email Address', group_name: 'RTI' },
+    { key_name: 'RTI_APPELLATE_NAME', value: 'Col Education, HQ Eastern Command', label: 'Appellate Authority Name', group_name: 'RTI' },
+    { key_name: 'RTI_APPELLATE_DESIGNATION', value: 'Appellate Authority, AIN', label: 'Appellate Authority Designation', group_name: 'RTI' },
+    { key_name: 'RTI_APPELLATE_PHONE', value: '+91 361 2304601', label: 'Appellate Authority Phone', group_name: 'RTI' },
+    { key_name: 'RTI_APPELLATE_EMAIL', value: 'appellate@ainguwahati.org', label: 'Appellate Authority Email', group_name: 'RTI' },
 ];

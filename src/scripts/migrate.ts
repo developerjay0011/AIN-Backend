@@ -458,6 +458,92 @@ const migrate = async () => {
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (recognitionTypeId) REFERENCES recognition_types(id) ON DELETE SET NULL
+        )`,
+      academic_calendar: `
+        CREATE TABLE IF NOT EXISTS academic_calendar (
+          id VARCHAR(255) PRIMARY KEY,
+          program VARCHAR(50) NOT NULL,
+          semester VARCHAR(50) NOT NULL,
+          sl INT NOT NULL,
+          activity TEXT NOT NULL,
+          dateFrom VARCHAR(100) NOT NULL,
+          dateTo VARCHAR(100) NOT NULL,
+          weeks VARCHAR(100),
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      academic_calendar_notes: `
+        CREATE TABLE IF NOT EXISTS academic_calendar_notes (
+          id VARCHAR(255) PRIMARY KEY,
+          program VARCHAR(50) NOT NULL,
+          semester VARCHAR(50) NOT NULL,
+          label VARCHAR(255) NOT NULL,
+          planned VARCHAR(100) NOT NULL,
+          prescribed VARCHAR(100) NOT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      research_initiatives: `
+        CREATE TABLE IF NOT EXISTS research_initiatives (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          description TEXT NOT NULL,
+          status VARCHAR(50) NOT NULL,
+          lead VARCHAR(255) NOT NULL,
+          category VARCHAR(100) NOT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      research_irc_members: `
+        CREATE TABLE IF NOT EXISTS research_irc_members (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          role VARCHAR(100) NOT NULL,
+          specialization VARCHAR(255) NOT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      research_bulletins: `
+        CREATE TABLE IF NOT EXISTS research_bulletins (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          date VARCHAR(100) NOT NULL,
+          size VARCHAR(50) NOT NULL,
+          type VARCHAR(50) NOT NULL,
+          description TEXT,
+          fileUrl VARCHAR(255) NOT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      research_cell: `
+        CREATE TABLE IF NOT EXISTS research_cell (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          description TEXT NOT NULL,
+          points TEXT NOT NULL,
+          image VARCHAR(255) DEFAULT NULL,
+          ircDescription TEXT DEFAULT NULL,
+          submissionSteps TEXT DEFAULT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
+      publications: `
+        CREATE TABLE IF NOT EXISTS publications (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          type VARCHAR(50) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          author VARCHAR(255) DEFAULT NULL,
+          initials VARCHAR(10) DEFAULT NULL,
+          department VARCHAR(255) DEFAULT NULL,
+          date VARCHAR(100) DEFAULT NULL,
+          venue VARCHAR(255) DEFAULT NULL,
+          speaker VARCHAR(255) DEFAULT NULL,
+          topic VARCHAR(255) DEFAULT NULL,
+          description TEXT DEFAULT NULL,
+          img VARCHAR(255) DEFAULT NULL,
+          fileUrl VARCHAR(255) DEFAULT NULL,
+          papers TEXT DEFAULT NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`
     };
 
@@ -468,6 +554,13 @@ const migrate = async () => {
       }
       await pool.query(finalQuery);
       // console.log(`✓ Table checked: ${name}`);
+    }
+
+    try {
+      await pool.query('ALTER TABLE publications DROP COLUMN doi');
+      console.log('✓ Migration: Dropped unused doi column from publications');
+    } catch (e) {
+      // column likely already dropped or does not exist
     }
 
     try {
@@ -494,6 +587,13 @@ const migrate = async () => {
     try {
       await pool.query('ALTER TABLE alumni_registrations ADD COLUMN email VARCHAR(255)');
       console.log('✓ Migration: Added email column to alumni_registrations');
+    } catch (e) {
+      // column likely exists
+    }
+
+    try {
+      await pool.query('ALTER TABLE research_cell ADD COLUMN submissionSteps TEXT DEFAULT NULL');
+      console.log('✓ Migration: Added submissionSteps column to research_cell');
     } catch (e) {
       // column likely exists
     }

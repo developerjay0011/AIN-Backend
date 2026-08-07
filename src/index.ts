@@ -20,12 +20,15 @@ import inquiryRoutes from './routes/inquiryRoutes.js';
 import toppersRoutes from './routes/toppersRoutes.js';
 import galleryRoutes from './routes/galleryRoutes.js';
 import programRoutes from './routes/programRoutes.js';
+import calendarRoutes from './routes/calendarRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import facilityRoutes from './routes/facilityRoutes.js';
+import researchRoutes from './routes/researchRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import placementRoutes from './routes/placementRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
 import recognitionsRoutes from './routes/recognitionsRoutes.js';
+import publicationsRoutes from './routes/publicationsRoutes.js';
 
 import express, { type Request, type Response } from 'express';
 import { authMiddleware } from './middleware/authMiddleware.js';
@@ -159,6 +162,9 @@ app.use('/api/placement', placementRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/awards', awardsRoutes);
 app.use('/api/recognitions', recognitionsRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/research', researchRoutes);
+app.use('/api/publications', publicationsRoutes);
 
 
 // Error Handling

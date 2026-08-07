@@ -10,10 +10,12 @@ import { seedNotices } from './notices.seed.js';
 import { seedSettings } from './settings.seed.js';
 import { seedInquiries } from './inquiry.seed.js';
 import { seedPrograms } from './programs.seed.js';
+import { seedResearch } from './research.seed.js';
 import { seedPlacement } from './placement.seed.js';
 import { seedFacilities } from './facilities.seed.js';
 import { seedDepartments } from './departments.seed.js';
 import { seedRecognitions } from './recognitions.seed.js';
+import { seedPublications } from './publications.seed.js';
 import { seedInstitutional } from './institutional.seed.js';
 
 
@@ -34,7 +36,9 @@ const runAllSeeds = async () => {
             'alumni_activities', 'alumni_members', 'alumni_executives',
             'placement_members', 'placement_stats', 'placement_highlights',
             'courses', 'programs',
-            'campus_facilities', 'hostel_details', 'sna_details', 'student_supports'
+            'campus_facilities', 'hostel_details', 'sna_details', 'student_supports',
+            'research_initiatives', 'research_irc_members', 'research_bulletins', 'research_cell',
+            'publications'
         ];
         for (const table of tables) {
             await pool.query(`DELETE FROM ${table}`);
@@ -58,6 +62,8 @@ const runAllSeeds = async () => {
         await seedPlacement();
         await seedAwards();
         await seedRecognitions();
+        await seedResearch();
+        await seedPublications();
 
         console.log('-----------------------------------');
         console.log('✨ ALL PRODUCTION SEEDS COMPLETED! ✨');

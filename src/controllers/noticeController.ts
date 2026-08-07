@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
-import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
+import { sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
 
 const isAdminRequest = (req: Request): boolean => {
   try {
@@ -22,7 +22,9 @@ const isAdminRequest = (req: Request): boolean => {
 };
 
 export const getAllNotices = asyncHandler(async (req: Request, res: Response) => {
-  const [notices] = await pool.query('SELECT * FROM notices ORDER BY createdAt DESC');
+  const [notices] = await pool.query(
+    "SELECT * FROM notices ORDER BY COALESCE(NULLIF(date, ''), DATE_FORMAT(createdAt, '%Y-%m-%d')) DESC, createdAt DESC"
+  );
 
   let filteredNotices = notices as any[];
   if (!isAdminRequest(req)) {
@@ -130,14 +132,14 @@ export const handleNoticePost = asyncHandler(async (req: Request, res: Response)
     // Smart Link Handling during update
     // 1. If deletedFiles JSON is provided, remove those links
     if (req.body.deletedFiles) {
-      const deletedFiles = typeof req.body.deletedFiles === 'string' 
-        ? JSON.parse(req.body.deletedFiles) 
+      const deletedFiles = typeof req.body.deletedFiles === 'string'
+        ? JSON.parse(req.body.deletedFiles)
         : req.body.deletedFiles;
-      
+
       if (Array.isArray(deletedFiles) && deletedFiles.length > 0) {
         const placeholders = deletedFiles.map(() => '?').join(',');
         await pool.query(
-          `DELETE FROM notice_links WHERE noticeId = ? AND id IN (${placeholders})`, 
+          `DELETE FROM notice_links WHERE noticeId = ? AND id IN (${placeholders})`,
           [id, ...deletedFiles]
         );
       }

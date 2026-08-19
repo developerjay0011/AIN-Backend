@@ -16,8 +16,41 @@
  * - Strips all HTML tags (converts < and > to entities)
  */
 export function sanitizeString(value: unknown): string {
-    if (typeof value !== 'string') return value as any;
-    return value.trim();
+    if (typeof value !== 'string') return '';
+    return value
+        .trim()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+
+export function isValidEmail(email: string): boolean {
+    if (!email || email.length > 254) return false;
+
+    // Strict RFC 5322 compliant regex that also avoids ReDoS
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+    if (!emailRegex.test(email)) return false;
+
+    // Extra check to ensure there are no consecutive dots in the domain part
+    const parts = email.split('@');
+    if (parts.length !== 2) return false;
+    const domain = parts[1];
+    if (domain.includes('..')) return false;
+
+    return true;
+}
+
+export function isValidPhone(phone: string): boolean {
+    const phoneRegex = /^[+0-9\s()-]{7,15}$/;
+    return phoneRegex.test(phone);
+}
+
+export function isValidName(name: string): boolean {
+    const nameRegex = /^[a-zA-Z\s.'-]{2,50}$/;
+    return nameRegex.test(name);
 }
 
 /**

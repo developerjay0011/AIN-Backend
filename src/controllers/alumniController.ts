@@ -1,10 +1,10 @@
+import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
-import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD } from '../utils/sanitize.js';
-import jwt from 'jsonwebtoken';
+import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD, isValidEmail, isValidPhone, isValidName } from '../utils/sanitize.js';
 
 const isAdminRequest = (req: Request): boolean => {
   try {
@@ -494,14 +494,21 @@ export const handleAlumniRegistration = asyncHandler(async (req: Request, res: R
   } = sanitizeObject(req.body);
 
   if (!name || !dob || !gender || !presentAddress || !correspondenceAddress
-      || !courseName || !yearOfJoining || !yearOfPassingOut || !presentOccupation
-      || !contactNumber || !email) {
+    || !courseName || !yearOfJoining || !yearOfPassingOut || !presentOccupation
+    || !contactNumber || !email) {
     throw new ApiError(400, 'All fields including contact number and email are required');
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!isValidName(name)) {
+    throw new ApiError(400, 'Invalid Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
+  }
+
+  if (!isValidEmail(email)) {
     throw new ApiError(400, 'Please provide a valid email address');
+  }
+
+  if (!isValidPhone(contactNumber)) {
+    throw new ApiError(400, 'Please provide a valid contact number format');
   }
 
   const newId = `REG-${Date.now()}`;

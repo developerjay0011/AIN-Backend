@@ -56,9 +56,36 @@ app.use(helmet({
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'none'"],
+      frameAncestors: ["'none'"], // Prevent clickjacking by restricting embedding completely
     },
   },
+  frameguard: {
+    action: 'deny', // Strict clickjacking protection
+  },
+  referrerPolicy: {
+    policy: 'strict-origin-when-cross-origin',
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  },
+  noSniff: true,
 }));
+
+// Permissions Policy Header Middleware
+app.use((req, res, next) => {
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+  );
+  next();
+});
+
+// Block Mailman routes to prevent exposure of mailing list administration pages
+app.use(['/mailman', '/cgi-bin/mailman'], (req, res) => {
+  res.status(403).json({ error: 'Access denied' });
+});
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -124,6 +151,13 @@ app.use('/api/inquiries', (req, res, next) => {
 });
 
 // Static Files
+// Block directory listing for uploads directory by rejecting access to directories
+app.use('/uploads', (req, res, next) => {
+  if (req.path === '/' || req.path === '' || req.path.endsWith('/')) {
+    return res.status(403).json({ error: 'Directory listing is forbidden' });
+  }
+  next();
+});
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Basic Route

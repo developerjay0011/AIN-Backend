@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import pool from '../config/db.js';
-import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
-import { sanitizeString } from '../utils/sanitize.js';
 import jwt from 'jsonwebtoken';
+import pool from '../config/db.js';
+import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
+import { sanitizeString, isValidEmail, isValidPhone, isValidName } from '../utils/sanitize.js';
 
 /**
  * Helper to verify CAPTCHA token and answer
@@ -40,14 +40,30 @@ export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Res
     const raw = req.body;
 
     const studentName = sanitizeString(raw.studentName);
-    const parentName  = sanitizeString(raw.parentName);
-    const email       = sanitizeString(raw.email);
-    const phone       = sanitizeString(raw.phone);
-    const grade       = sanitizeString(raw.grade);
-    const message     = sanitizeString(raw.message ?? '');
+    const parentName = sanitizeString(raw.parentName);
+    const email = sanitizeString(raw.email);
+    const phone = sanitizeString(raw.phone);
+    const grade = sanitizeString(raw.grade);
+    const message = sanitizeString(raw.message ?? '');
 
     if (!studentName || !parentName || !email || !phone || !grade) {
         throw new ApiError(400, 'Student Name, Parent Name, Email, Phone, and Grade are required');
+    }
+
+    if (!isValidName(studentName)) {
+        throw new ApiError(400, 'Invalid Student Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
+    }
+
+    if (!isValidName(parentName)) {
+        throw new ApiError(400, 'Invalid Parent Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
+    }
+
+    if (!isValidEmail(email)) {
+        throw new ApiError(400, 'Invalid Email address format');
+    }
+
+    if (!isValidPhone(phone)) {
+        throw new ApiError(400, 'Invalid Phone number format');
     }
 
     // Verify CAPTCHA
@@ -107,13 +123,25 @@ export const createContactInquiry = asyncHandler(async (req: Request, res: Respo
     const raw = req.body;
 
     const fullName = sanitizeString(raw.fullName);
-    const email   = sanitizeString(raw.email);
-    const phone   = sanitizeString(raw.phone ?? '');
+    const email = sanitizeString(raw.email);
+    const phone = sanitizeString(raw.phone ?? '');
     const subject = sanitizeString(raw.subject);
     const message = sanitizeString(raw.message);
 
     if (!fullName || !email || !subject || !message) {
         throw new ApiError(400, 'Full Name, Email, Subject, and Message are required');
+    }
+
+    if (!isValidName(fullName)) {
+        throw new ApiError(400, 'Invalid Full Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
+    }
+
+    if (!isValidEmail(email)) {
+        throw new ApiError(400, 'Invalid Email address format');
+    }
+
+    if (phone && !isValidPhone(phone)) {
+        throw new ApiError(400, 'Invalid Phone number format');
     }
 
     // Verify CAPTCHA

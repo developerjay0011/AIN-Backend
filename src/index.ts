@@ -82,8 +82,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Block Mailman routes to prevent exposure of mailing list administration pages
-app.use(['/mailman', '/cgi-bin/mailman'], (req, res) => {
+// Block Mailman and Pipermail routes to prevent exposure of mailing list administration pages
+app.use(['/mailman', '/cgi-bin/mailman', '/pipermail'], (req, res) => {
   res.status(403).json({ error: 'Access denied' });
 });
 
@@ -125,20 +125,34 @@ app.use(express.json());
 app.set('trust proxy', 1);
 
 // Rate Limiting
+const isDev = process.env.NODE_ENV === 'development';
+
 const apiLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: isDev ? 10000 : 100, // limit each IP to 100 requests per windowMs in production
+  skip: (req) => isDev || req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost',
   standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many requests from this IP, please try again after 5 minutes'
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many requests from this IP, please try again after 5 minutes'
+    });
+  }
 });
 
 const inquiryLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 5, // restrict public inquiry forms to 5 requests per 5 mins to prevent spam
+  max: isDev ? 1000 : 5, // restrict public inquiry forms to 5 requests per 5 mins in production
+  skip: (req) => isDev || req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost',
   standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many inquiry submissions from this IP, please try again after 5 minutes'
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: 'Too many inquiry submissions from this IP, please try again after 5 minutes'
+    });
+  }
 });
 
 // app.use('/api/', apiLimiter);

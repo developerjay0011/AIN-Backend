@@ -3,7 +3,17 @@ import pool from '../config/db.js';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
-import { sanitizeString, isValidEmail, isValidPhone, isValidName } from '../utils/sanitize.js';
+import {
+    sanitizeString,
+    sanitizeEmail,
+    isValidEmail,
+    validateEmailDeliverable,
+    isValidPhone,
+    isValidName,
+    containsHtml,
+    isValidSubject,
+    isValidMessage
+} from '../utils/sanitize.js';
 
 /**
  * Helper to verify CAPTCHA token and answer
@@ -39,9 +49,21 @@ const verifyCaptcha = (token: string, answer: string) => {
 export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Response) => {
     const raw = req.body;
 
+    // Check for any HTML injection across all inputs
+    if (
+        containsHtml(raw.studentName) ||
+        containsHtml(raw.parentName) ||
+        containsHtml(raw.email) ||
+        containsHtml(raw.phone) ||
+        containsHtml(raw.grade) ||
+        containsHtml(raw.message)
+    ) {
+        throw new ApiError(400, 'HTML tags, script elements, and angle brackets (< >) are not allowed in form submissions');
+    }
+
     const studentName = sanitizeString(raw.studentName);
     const parentName = sanitizeString(raw.parentName);
-    const email = sanitizeString(raw.email);
+    const email = sanitizeEmail(raw.email);
     const phone = sanitizeString(raw.phone);
     const grade = sanitizeString(raw.grade);
     const message = sanitizeString(raw.message ?? '');
@@ -58,12 +80,17 @@ export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Res
         throw new ApiError(400, 'Invalid Parent Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
     }
 
-    if (!isValidEmail(email)) {
-        throw new ApiError(400, 'Invalid Email address format');
+    const emailCheck = await validateEmailDeliverable(email);
+    if (!emailCheck.valid) {
+        throw new ApiError(400, emailCheck.error || 'Invalid Email address format');
     }
 
     if (!isValidPhone(phone)) {
         throw new ApiError(400, 'Invalid Phone number format');
+    }
+
+    if (raw.message && !isValidMessage(raw.message, 1, 3000)) {
+        throw new ApiError(400, 'Message cannot exceed 3000 characters and must not contain HTML tags');
     }
 
     // Verify CAPTCHA
@@ -122,8 +149,19 @@ export const deleteAdmissionInquiry = asyncHandler(async (req: Request, res: Res
 export const createContactInquiry = asyncHandler(async (req: Request, res: Response) => {
     const raw = req.body;
 
+    // Check for any HTML injection across all inputs
+    if (
+        containsHtml(raw.fullName) ||
+        containsHtml(raw.email) ||
+        containsHtml(raw.phone) ||
+        containsHtml(raw.subject) ||
+        containsHtml(raw.message)
+    ) {
+        throw new ApiError(400, 'HTML tags, script elements, and angle brackets (< >) are not allowed in form submissions');
+    }
+
     const fullName = sanitizeString(raw.fullName);
-    const email = sanitizeString(raw.email);
+    const email = sanitizeEmail(raw.email);
     const phone = sanitizeString(raw.phone ?? '');
     const subject = sanitizeString(raw.subject);
     const message = sanitizeString(raw.message);
@@ -136,12 +174,21 @@ export const createContactInquiry = asyncHandler(async (req: Request, res: Respo
         throw new ApiError(400, 'Invalid Full Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
     }
 
-    if (!isValidEmail(email)) {
-        throw new ApiError(400, 'Invalid Email address format');
+    const emailCheck = await validateEmailDeliverable(email);
+    if (!emailCheck.valid) {
+        throw new ApiError(400, emailCheck.error || 'Invalid Email address format');
     }
 
     if (phone && !isValidPhone(phone)) {
         throw new ApiError(400, 'Invalid Phone number format');
+    }
+
+    if (!isValidSubject(raw.subject)) {
+        throw new ApiError(400, 'Subject must be between 2 and 150 characters and cannot contain HTML or newlines');
+    }
+
+    if (!isValidMessage(raw.message)) {
+        throw new ApiError(400, 'Message must be between 5 and 3000 characters and cannot contain HTML tags');
     }
 
     // Verify CAPTCHA

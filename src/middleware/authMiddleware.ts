@@ -5,8 +5,9 @@ import { Request, Response, NextFunction } from 'express';
 // Routes that require authentication even for GET requests
 const PROTECTED_GET_PATHS = [
   '/api/admins',
-  '/api/dashboard/stats',
-  '/api/inquiries'
+  '/api/dashboard',
+  '/api/inquiries',
+  '/api/alumni/registrations'
 ];
 
 /**

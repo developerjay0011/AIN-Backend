@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
-import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD, isValidEmail, isValidPhone, isValidName } from '../utils/sanitize.js';
+import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD, validateEmailDeliverable, isValidPhone, isValidName, containsHtml, isValidSafeText } from '../utils/sanitize.js';
 
 const isAdminRequest = (req: Request): boolean => {
   try {
@@ -486,6 +486,20 @@ export const deleteConstitutionArticle = asyncHandler(async (req: Request, res: 
  * POST /alumni/register
  */
 export const handleAlumniRegistration = asyncHandler(async (req: Request, res: Response) => {
+  const raw = req.body;
+
+  if (
+    containsHtml(raw.name) ||
+    containsHtml(raw.presentAddress) ||
+    containsHtml(raw.correspondenceAddress) ||
+    containsHtml(raw.courseName) ||
+    containsHtml(raw.presentOccupation) ||
+    containsHtml(raw.contactNumber) ||
+    containsHtml(raw.email)
+  ) {
+    throw new ApiError(400, 'HTML tags, script elements, and angle brackets (< >) are not allowed in registration submissions');
+  }
+
   const {
     name, dob, gender,
     presentAddress, correspondenceAddress,
@@ -503,12 +517,25 @@ export const handleAlumniRegistration = asyncHandler(async (req: Request, res: R
     throw new ApiError(400, 'Invalid Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
   }
 
-  if (!isValidEmail(email)) {
-    throw new ApiError(400, 'Please provide a valid email address');
+  const emailCheck = await validateEmailDeliverable(email);
+  if (!emailCheck.valid) {
+    throw new ApiError(400, emailCheck.error || 'Please provide a valid email address');
   }
 
   if (!isValidPhone(contactNumber)) {
     throw new ApiError(400, 'Please provide a valid contact number format');
+  }
+
+  if (!isValidSafeText(presentAddress, 5, 500)) {
+    throw new ApiError(400, 'Present address must be between 5 and 500 characters and contain no HTML');
+  }
+
+  if (!isValidSafeText(correspondenceAddress, 5, 500)) {
+    throw new ApiError(400, 'Correspondence address must be between 5 and 500 characters and contain no HTML');
+  }
+
+  if (!isValidSafeText(presentOccupation, 2, 255)) {
+    throw new ApiError(400, 'Present occupation must be between 2 and 255 characters and contain no HTML');
   }
 
   const newId = `REG-${Date.now()}`;

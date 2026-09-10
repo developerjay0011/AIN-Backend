@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import pool from '../config/db.js';
 import { ApiError } from '../utils/ApiResponse.js';
 import { Request, Response, NextFunction } from 'express';
 
@@ -21,7 +22,7 @@ const PUBLIC_PATHS = [
   '/api/alumni/register'
 ];
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const reqPath = req.originalUrl.split('?')[0];
 
   // 1. Allow all GET requests BY DEFAULT (to support public frontend)
@@ -38,22 +39,41 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     return next();
   }
 
-  // 3. For everything else, require a valid Bearer token
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new ApiError(401, 'Authentication required (Bearer token)');
+  // 3. For everything else, require a valid token (check HttpOnly cookie or Bearer header)
+  let token = req.cookies?.token;
+
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
   }
 
-  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return next(new ApiError(401, 'Authentication required'));
+  }
+
   const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) throw new Error('JWT_SECRET environment variable is not set');
+  if (!jwtSecret) return next(new Error('JWT_SECRET environment variable is not set'));
 
   try {
-    const decoded = jwt.verify(token, jwtSecret);
+    const decoded: any = jwt.verify(token, jwtSecret);
+
+    // Validate single-session integrity (Concurrent Login Prevention)
+    if (decoded?.id && decoded?.sessionId) {
+      const [rows]: any = await pool.query('SELECT currentSessionId FROM admins WHERE id = ?', [decoded.id]);
+      if (rows.length > 0 && rows[0].currentSessionId && rows[0].currentSessionId !== decoded.sessionId) {
+        return next(new ApiError(401, 'Your session has expired because this account was logged in from another browser or device.'));
+      }
+    }
+
     (req as any).user = decoded;
     next();
-  } catch (error) {
-    throw new ApiError(401, 'Invalid or expired token');
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      return next(error);
+    }
+    return next(new ApiError(401, 'Invalid or expired token'));
   }
 };
 

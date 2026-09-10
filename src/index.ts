@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { rateLimit } from 'express-rate-limit';
 import heroRoutes from './routes/heroRoutes.js';
 import aqarRoutes from './routes/aqarRoutes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -29,9 +28,12 @@ import placementRoutes from './routes/placementRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
 import recognitionsRoutes from './routes/recognitionsRoutes.js';
 import publicationsRoutes from './routes/publicationsRoutes.js';
+import { apiLimiter, inquiryLimiter } from './middleware/rateLimiter.js';
 
+import cookieParser from 'cookie-parser';
 import express, { type Request, type Response } from 'express';
 import { authMiddleware } from './middleware/authMiddleware.js';
+import { sanitizeMiddleware } from './middleware/sanitizeMiddleware.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -120,42 +122,15 @@ app.use(cors({
 // Explicitly handle pre-flight requests (Removed due to Express 5 path-to-regexp changes; app.use(cors()) is sufficient)
 app.use(morgan('dev'));
 app.use(express.json());
+app.use(cookieParser());
+app.use(sanitizeMiddleware);
 
 // Trust the reverse proxy (crucial for cPanel/Apache/LiteSpeed) so rate limiters track real client IPs
 app.set('trust proxy', 1);
 
 // Rate Limiting
-const isDev = process.env.NODE_ENV === 'development';
+app.use('/api', apiLimiter);
 
-const apiLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: isDev ? 10000 : 100, // limit each IP to 100 requests per windowMs in production
-  skip: (req) => isDev || req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost',
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).json({
-      success: false,
-      message: 'Too many requests from this IP, please try again after 5 minutes'
-    });
-  }
-});
-
-const inquiryLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: isDev ? 1000 : 5, // restrict public inquiry forms to 5 requests per 5 mins in production
-  skip: (req) => isDev || req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost',
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).json({
-      success: false,
-      message: 'Too many inquiry submissions from this IP, please try again after 5 minutes'
-    });
-  }
-});
-
-// app.use('/api/', apiLimiter);
 // Apply inquiry limiter only to POST requests (submissions) to avoid blocking Admin GET requests
 app.use('/api/inquiries', (req, res, next) => {
   if (req.method === 'POST') {

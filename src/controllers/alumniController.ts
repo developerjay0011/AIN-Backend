@@ -157,9 +157,17 @@ export const getAlumniDirectory = asyncHandler(async (req: Request, res: Respons
  * Create or Update Alumni Directory Member
  */
 export const handleDirectoryPost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, name, batch, role, location, company, verified, linkedinUrl, email } = sanitizeObject(req.body);
+  let { id, name, batch, role, location, company, verified, linkedinUrl, email } = sanitizeObject(req.body);
   const imageUrl = req.file ? getUploadPath(req.file) : (req.body.imageUrl || null);
   const isVerified = verified === 'true' || verified === true || verified === 1 || verified === '1';
+
+  if (email && typeof email === 'string' && email.trim()) {
+    const emailCheck = await validateEmailDeliverable(email.trim());
+    if (!emailCheck.valid) {
+      throw new ApiError(400, emailCheck.error || 'Please provide a valid email address');
+    }
+    email = emailCheck.normalizedEmail;
+  }
 
   if (id === '0' || !id || id === 0) {
     if (!name || !batch || !role) {
@@ -210,9 +218,17 @@ export const getAlumniExecutives = asyncHandler(async (req: Request, res: Respon
  * Create or Update Alumni Executive
  */
 export const handleExecutivePost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, name, role, batch, quote, isHead, linkedinUrl, email, sortOrder } = sanitizeObject(req.body);
+  let { id, name, role, batch, quote, isHead, linkedinUrl, email, sortOrder } = sanitizeObject(req.body);
   const imageUrl = req.file ? getUploadPath(req.file) : (req.body.imageUrl || null);
   const isExecutiveHead = isHead === 'true' || isHead === true || isHead === 1 || isHead === '1';
+
+  if (email && typeof email === 'string' && email.trim()) {
+    const emailCheck = await validateEmailDeliverable(email.trim());
+    if (!emailCheck.valid) {
+      throw new ApiError(400, emailCheck.error || 'Please provide a valid email address');
+    }
+    email = emailCheck.normalizedEmail;
+  }
 
   if (id === '0' || !id || id === 0) {
     if (!name || !role || !batch) {
@@ -386,8 +402,16 @@ export const getAlumniCommittee = asyncHandler(async (req: Request, res: Respons
  * Create or Update Alumni Committee Member
  */
 export const handleCommitteePost = asyncHandler(async (req: Request, res: Response) => {
-  const { id, name, designation, batch, location, linkedinUrl, email, sortOrder } = sanitizeObject(req.body);
+  let { id, name, designation, batch, location, linkedinUrl, email, sortOrder } = sanitizeObject(req.body);
   const imageUrl = req.file ? getUploadPath(req.file) : (req.body.imageUrl || null);
+
+  if (email && typeof email === 'string' && email.trim()) {
+    const emailCheck = await validateEmailDeliverable(email.trim());
+    if (!emailCheck.valid) {
+      throw new ApiError(400, emailCheck.error || 'Please provide a valid email address');
+    }
+    email = emailCheck.normalizedEmail;
+  }
 
   if (id === '0' || !id || id === 0) {
     if (!name || !designation || !batch || !location) {

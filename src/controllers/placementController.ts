@@ -1,9 +1,9 @@
 import pool from '../config/db.js';
 import { Request, Response } from 'express';
-import { sanitizeObject } from '../utils/sanitize.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
+import { sanitizeObject, validateEmailDeliverable } from '../utils/sanitize.js';
 
 /**
  * Get all Placement Cell Members
@@ -19,6 +19,14 @@ export const getPlacementMembers = asyncHandler(async (req: Request, res: Respon
 export const handlePlacementMemberPost = asyncHandler(async (req: Request, res: Response) => {
   let { id, name, designation, role, email } = sanitizeObject(req.body);
   const imageUrl = req.file ? getUploadPath(req.file) : (req.body.imageUrl || null);
+
+  if (email && typeof email === 'string' && email.trim()) {
+    const emailCheck = await validateEmailDeliverable(email.trim());
+    if (!emailCheck.valid) {
+      throw new ApiError(400, emailCheck.error || 'Please provide a valid email address');
+    }
+    email = emailCheck.normalizedEmail;
+  }
 
   if (id === '0' || !id || id === 0) {
     if (!name || !role) {

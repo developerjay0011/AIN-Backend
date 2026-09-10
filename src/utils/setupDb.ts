@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
 
@@ -564,6 +565,11 @@ const setupDatabase = async () => {
       } catch (e) {
         // column likely exists
       }
+      try {
+        await pool.query('ALTER TABLE admins ADD COLUMN currentSessionId VARCHAR(255) DEFAULT NULL');
+      } catch (e) {
+        // column likely exists
+      }
 
       console.log('✅ All tables ensured.');
 
@@ -571,12 +577,13 @@ const setupDatabase = async () => {
     const [admins] = await pool.query('SELECT * FROM admins LIMIT 1');
     if ((admins as any[]).length === 0) {
       console.log('👤 No admin found. Creating default admin...');
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      const sha256Password = crypto.createHash('sha256').update('admin123').digest('hex');
+      const hashedPassword = await bcrypt.hash(sha256Password, 10);
       await pool.query(
         'INSERT INTO admins (id, username, password) VALUES (?, ?, ?)',
         [Date.now().toString(), 'admin', hashedPassword]
       );
-      console.log('✅ Default admin created: admin / admin123');
+      console.log('✅ Default admin created: admin / admin123 (SHA-256 pre-hashed + bcrypt salted)');
     }
 
     // Seed quality metrics if empty

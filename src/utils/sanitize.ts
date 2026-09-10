@@ -8,15 +8,29 @@ import deepEmailValidator from 'deep-email-validator';
  */
 
 /**
- * Sanitise a string value by trimming whitespace, stripping script/HTML tags and null bytes.
- * Punctuation like ' and & are preserved as normal characters because React automatically escapes JSX.
+ * Sanitise a string value by:
+ * 1. Stripping null bytes
+ * 2. Stripping complete and unclosed HTML/XML tags
+ * 3. Stripping DOM event handlers (onclick=, onload=, onerror=, etc.)
+ * 4. Stripping dangerous URL schemes (javascript:, data:text/html, vbscript:)
+ * 5. Stripping raw angle brackets to prevent tag reconstruction
  */
 export function sanitizeString(value: unknown): string {
     if (typeof value !== 'string') return '';
     return value
-        .trim()
+        .normalize('NFKC')
         .replace(/\0/g, '') // strip null bytes
-        .replace(/<[^>]*>/g, ''); // strip HTML tags
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '') // strip entire script blocks
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '') // strip entire style blocks
+        .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '') // strip entire iframe blocks
+        .replace(/<[^>]*>/g, '') // strip full HTML tags <...>
+        .replace(/<\s*\/?\s*[a-zA-Z][^>]*>?/gi, '') // strip unclosed opening/closing tags e.g. "<script", "<iframe", "<img"
+        .replace(/\b(on\w+)\s*=\s*(['"][^'"]*['"]|[^\s>]+)/gi, '') // strip DOM event handlers e.g. onclick=prompt(...)
+        .replace(/\bjavascript:[^\s'"]*/gi, '') // strip javascript: pseudo-protocol
+        .replace(/\bdata:\s*text\/html[^\s'"]*/gi, '') // strip data:text/html
+        .replace(/\bvbscript:[^\s'"]*/gi, '') // strip vbscript:
+        .replace(/[<>]/g, '') // strip remaining raw angle brackets
+        .trim();
 }
 
 /**
@@ -50,11 +64,11 @@ export function sanitizeEmail(email: unknown): string {
 }
 
 /**
- * Checks if a string contains HTML/script tags, angle brackets, or javascript: pseudo-protocols.
+ * Checks if a string contains HTML/script tags, DOM event handlers, angle brackets, or javascript: pseudo-protocols.
  */
 export function containsHtml(value: unknown): boolean {
     if (typeof value !== 'string') return false;
-    return /<[^>]*>|[<>]|javascript:|data:\s*text\/html/i.test(value);
+    return /<[^>]*>|<\s*\/?\s*[a-zA-Z]|[<>]|\b(on\w+)\s*=|\bjavascript:|\bdata:\s*text\/html|\bvbscript:/i.test(value);
 }
 
 /**
@@ -93,10 +107,11 @@ export function isValidEmail(email: unknown): boolean {
 
 /**
  * Full Deliverability Pipeline:
- * Validates Syntax + Domain + Typo + DNS MX + 3000+ Disposable Domains via deep-email-validator.
+ * Validates Syntax + Domain + Typo + DNS MX + 3000+ Disposable Domains via deep-email-validator & validator.js.
  */
 export async function validateEmailDeliverable(
-    email: unknown
+    email: unknown,
+    options: { checkMx?: boolean } = {}
 ): Promise<{ valid: boolean; error?: string; normalizedEmail?: string }> {
     if (!isValidEmail(email)) {
         return { valid: false, error: 'Please enter a valid email address format' };
@@ -104,33 +119,55 @@ export async function validateEmailDeliverable(
 
     const normalizedEmail = sanitizeEmail(email);
 
-    // Deep checks (MX, Typo, 3000+ Disposable Domains) are enforced in production
-    if (process.env.NODE_ENV !== 'development') {
-        try {
-            const validateFunc = (deepEmailValidator as any).default || deepEmailValidator;
-            const res = await validateFunc({
-                email: normalizedEmail,
-                validateRegex: false,
-                validateMx: true,
-                validateTypo: true,
-                validateDisposable: true,
-                validateSMTP: false
-            });
+    try {
+        const validateFunc = (deepEmailValidator as any).default || deepEmailValidator;
+        let res = await validateFunc({
+            email: normalizedEmail,
+            validateRegex: true,
+            validateMx: options.checkMx ?? true,
+            validateTypo: true,
+            validateDisposable: true,
+            validateSMTP: false
+        });
 
-            if (!res.valid) {
-                if (res.reason === 'disposable') {
-                    return { valid: false, error: 'Disposable or temporary email addresses are not permitted', normalizedEmail };
-                }
-                if (res.reason === 'mx') {
-                    return { valid: false, error: 'The email domain provided cannot receive emails (no valid mail server found)', normalizedEmail };
-                }
-                if (res.reason === 'typo') {
-                    return { valid: false, error: 'The email domain appears to contain a typo. Please check your spelling', normalizedEmail };
-                }
-                return { valid: false, error: 'Invalid or non-deliverable email address', normalizedEmail };
+        // If flagged as typo on multi-part educational or regional ccTLD (.edu.in, .ac.in, .co.uk, etc.), re-verify with validateTypo: false
+        if (!res.valid && res.reason === 'typo') {
+            const domainParts = normalizedEmail.split('@')[1]?.toLowerCase().split('.') || [];
+            const isMultiPartTld = domainParts.length >= 3 && [
+                'in', 'uk', 'au', 'sg', 'np', 'bd', 'ca', 'nz', 'za', 'br', 'jp', 'my', 'lk'
+            ].includes(domainParts[domainParts.length - 1]);
+
+            if (isMultiPartTld) {
+                res = await validateFunc({
+                    email: normalizedEmail,
+                    validateRegex: true,
+                    validateMx: options.checkMx ?? true,
+                    validateTypo: false,
+                    validateDisposable: true,
+                    validateSMTP: false
+                });
             }
-        } catch {
-            return { valid: true, normalizedEmail }; // Fail open on network blips
+        }
+
+        if (!res.valid) {
+            if (res.reason === 'disposable') {
+                return { valid: false, error: 'Disposable or temporary email addresses are not permitted', normalizedEmail };
+            }
+            if (res.reason === 'mx') {
+                return { valid: false, error: 'The email domain provided cannot receive emails (no valid mail server found)', normalizedEmail };
+            }
+            if (res.reason === 'typo') {
+                return { valid: false, error: 'The email domain appears to contain a typo. Please check your spelling', normalizedEmail };
+            }
+            if (res.reason === 'regex') {
+                return { valid: false, error: 'Please enter a valid email address format', normalizedEmail };
+            }
+            return { valid: false, error: 'Invalid or non-deliverable email address', normalizedEmail };
+        }
+    } catch {
+        // Fallback to validator.js if network/DNS lookup encounters an unexpected issue
+        if (!validator.isEmail(normalizedEmail)) {
+            return { valid: false, error: 'Please enter a valid email address format', normalizedEmail };
         }
     }
 
@@ -190,19 +227,37 @@ export function isValidSafeText(text: unknown, minLength = 1, maxLength = 500): 
 }
 
 /**
+ * Recursively sanitises strings in any data structure (objects, arrays, primitives).
+ */
+export function sanitizeDeep<T>(value: T): T {
+    if (typeof value === 'string') {
+        return sanitizeString(value) as unknown as T;
+    }
+    if (Array.isArray(value)) {
+        return value.map(item => sanitizeDeep(item)) as unknown as T;
+    }
+    if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+        const cleaned: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(value)) {
+            // Do not sanitize passwords or binary buffers
+            if (k.toLowerCase().includes('password')) {
+                cleaned[k] = v;
+            } else if (k.toLowerCase().includes('email') && typeof v === 'string') {
+                cleaned[k] = sanitizeEmail(v);
+            } else {
+                cleaned[k] = sanitizeDeep(v);
+            }
+        }
+        return cleaned as unknown as T;
+    }
+    return value;
+}
+
+/**
  * Sanitises every string field in a plain object.
  */
 export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
-    const result: Record<string, unknown> = {};
-    for (const key of Object.keys(obj)) {
-        const val = obj[key];
-        if (key.toLowerCase().includes('email')) {
-            result[key] = typeof val === 'string' ? sanitizeEmail(val) : val;
-        } else {
-            result[key] = typeof val === 'string' ? sanitizeString(val) : val;
-        }
-    }
-    return result as T;
+    return sanitizeDeep(obj);
 }
 
 /**

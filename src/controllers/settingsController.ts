@@ -1,10 +1,10 @@
 import pool from '../config/db.js';
-import { sanitizeString } from '../utils/sanitize.js';
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
 import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
+import { sanitizeString, validateEmailDeliverable } from '../utils/sanitize.js';
 
-import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getAllSettings = asyncHandler(async (req: Request, res: Response) => {
   const [rows] = await pool.query("SELECT * FROM settings WHERE group_name != 'About Us' ORDER BY group_name, label");
@@ -52,6 +52,28 @@ export const updateSettings = asyncHandler(async (req: Request, res: Response) =
   };
 
   const sanitizedSettings = sanitizeDeep(settings);
+
+  // Validate any email settings via deep-email-validator and validator.js
+  const validateEmailsRecursively = async (obj: any, keyPath: string = ''): Promise<void> => {
+    if (typeof obj === 'string') {
+      if (keyPath.toUpperCase().includes('EMAIL') && obj.trim()) {
+        const emailCheck = await validateEmailDeliverable(obj.trim());
+        if (!emailCheck.valid) {
+          throw new ApiError(400, `Invalid email address${keyPath ? ` in ${keyPath}` : ''}: ${emailCheck.error || 'Please provide a valid deliverable email address'}`);
+        }
+      }
+    } else if (Array.isArray(obj)) {
+      for (let i = 0; i < obj.length; i++) {
+        await validateEmailsRecursively(obj[i], `${keyPath}[${i}]`);
+      }
+    } else if (obj && typeof obj === 'object') {
+      for (const [k, v] of Object.entries(obj)) {
+        await validateEmailsRecursively(v, keyPath ? `${keyPath}.${k}` : k);
+      }
+    }
+  };
+
+  await validateEmailsRecursively(sanitizedSettings);
 
   const entries = Object.entries(sanitizedSettings);
 

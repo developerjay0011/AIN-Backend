@@ -50,7 +50,9 @@ const setupDatabase = async () => {
       'research_irc_members',
       'research_bulletins',
       'research_cell',
-      'publications'
+      'publications',
+      'academic_calendar',
+      'academic_calendar_notes'
     ];
 
     await pool.query('SET FOREIGN_KEY_CHECKS = 0');
@@ -173,6 +175,7 @@ const setupDatabase = async () => {
         id VARCHAR(255) PRIMARY KEY,
         username VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
+        currentSessionId VARCHAR(255) DEFAULT NULL,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
@@ -529,6 +532,28 @@ const setupDatabase = async () => {
         papers TEXT DEFAULT NULL,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS academic_calendar (
+        id VARCHAR(255) PRIMARY KEY,
+        program VARCHAR(50) NOT NULL,
+        semester VARCHAR(50) NOT NULL,
+        sl INT NOT NULL,
+        activity TEXT NOT NULL,
+        dateFrom VARCHAR(100) NOT NULL,
+        dateTo VARCHAR(100) NOT NULL,
+        weeks VARCHAR(100),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS academic_calendar_notes (
+        id VARCHAR(255) PRIMARY KEY,
+        program VARCHAR(50) NOT NULL,
+        semester VARCHAR(50) NOT NULL,
+        label VARCHAR(255) NOT NULL,
+        planned VARCHAR(100) NOT NULL,
+        prescribed VARCHAR(100) NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`
     ];
 
@@ -552,6 +577,11 @@ const setupDatabase = async () => {
       }
         try {
         await pool.query('ALTER TABLE notices ADD COLUMN externalLinks TEXT');
+      } catch (e) {
+        // column likely exists
+      }
+        try {
+        await pool.query('ALTER TABLE notices ADD COLUMN expiryDate VARCHAR(100)');
       } catch (e) {
         // column likely exists
       }

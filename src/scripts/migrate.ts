@@ -68,6 +68,7 @@ const migrate = async () => {
           type VARCHAR(100),
           description TEXT,
           critical BOOLEAN DEFAULT 0,
+          expiryDate VARCHAR(100),
           externalLinks TEXT,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -129,6 +130,7 @@ const migrate = async () => {
           id VARCHAR(255) PRIMARY KEY,
           username VARCHAR(255) UNIQUE NOT NULL,
           password VARCHAR(255) NOT NULL,
+          currentSessionId VARCHAR(255) DEFAULT NULL,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )`,
@@ -578,6 +580,13 @@ const migrate = async () => {
     }
 
     try {
+      await pool.query('ALTER TABLE notices ADD COLUMN expiryDate VARCHAR(100)');
+      console.log('✓ Migration: Added expiryDate column to notices');
+    } catch (e) {
+      // column likely exists
+    }
+
+    try {
       await pool.query('ALTER TABLE alumni_registrations ADD COLUMN contactNumber VARCHAR(50)');
       console.log('✓ Migration: Added contactNumber column to alumni_registrations');
     } catch (e) {
@@ -594,6 +603,13 @@ const migrate = async () => {
     try {
       await pool.query('ALTER TABLE research_cell ADD COLUMN submissionSteps TEXT DEFAULT NULL');
       console.log('✓ Migration: Added submissionSteps column to research_cell');
+    } catch (e) {
+      // column likely exists
+    }
+
+    try {
+      await pool.query('ALTER TABLE admins ADD COLUMN currentSessionId VARCHAR(255) DEFAULT NULL');
+      console.log('✓ Migration: Added currentSessionId column to admins');
     } catch (e) {
       // column likely exists
     }

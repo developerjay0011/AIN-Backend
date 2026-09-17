@@ -30,7 +30,7 @@ export const seedResearch = async () => {
 
     for (const init of initiatives) {
         await pool.query(
-            `INSERT INTO research_initiatives (title, description, status, lead, category)
+            `INSERT INTO research_initiatives (title, description, status, \`lead\`, category)
              VALUES (?, ?, ?, ?, ?)`,
             [init.title, init.description, init.status, init.lead, init.category]
         );

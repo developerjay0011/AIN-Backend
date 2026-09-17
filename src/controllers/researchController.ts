@@ -47,7 +47,7 @@ export const createInitiative = asyncHandler(async (req: Request, res: Response)
   }
 
   const [result] = await pool.query(
-    'INSERT INTO research_initiatives (title, description, status, lead, category) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO research_initiatives (title, description, status, `lead`, category) VALUES (?, ?, ?, ?, ?)',
     [sanitizeString(title), sanitizeString(description), sanitizeString(status), sanitizeString(lead), sanitizeString(category)]
   );
 
@@ -63,7 +63,7 @@ export const updateInitiative = asyncHandler(async (req: Request, res: Response)
   }
 
   await pool.query(
-    'UPDATE research_initiatives SET title = ?, description = ?, status = ?, lead = ?, category = ? WHERE id = ?',
+    'UPDATE research_initiatives SET title = ?, description = ?, status = ?, `lead` = ?, category = ? WHERE id = ?',
     [sanitizeString(title), sanitizeString(description), sanitizeString(status), sanitizeString(lead), sanitizeString(category), id]
   );
 

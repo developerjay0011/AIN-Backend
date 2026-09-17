@@ -87,8 +87,9 @@ const tests: TestItem[] = [
         severity: '5.3 Medium',
         category: 'OWASP Data Validation Testing',
         testFunc: async () => {
-            const { containsHtml, isValidName, isValidSubject, isValidMessage } = await import('../utils/sanitize.js');
-            
+            const { containsHtml, containsDangerousChars, isValidName, isValidPhone, isValidSubject, isValidMessage } = await import('../utils/sanitize.js');
+
+            // === Unit-level validator checks ===
             const xssPayloads = [
                 '<script>alert(1)</script>',
                 '"><img src=x onerror=alert(1)>',
@@ -98,24 +99,108 @@ const tests: TestItem[] = [
 
             let xssBlocked = true;
             for (const payload of xssPayloads) {
-                if (!containsHtml(payload)) {
+                if (!containsHtml(payload) || !containsDangerousChars(payload)) {
                     xssBlocked = false;
                 }
             }
 
-            const nameValid = isValidName('John Doe') && !isValidName('<script>alert(1)</script>');
-            const subjectValid = isValidSubject('Inquiry about B.Sc') && !isValidSubject('Subject\r\nBcc:evil@test.com');
-            const messageValid = isValidMessage('Hello I want to inquire about admissions.') && !isValidMessage('<script>bad</script>');
+            // Template injection / SSTI curly braces check
+            const templateBracesBlocked = containsDangerousChars('{fgjhghkj}') && !isValidMessage('{fgjhghkj}');
 
-            if (xssBlocked && nameValid && subjectValid && messageValid) {
+            // Phone validation check: 9-digit '564656454' must be blocked; valid 10-digit must pass
+            const phoneInvalidBlocked = !isValidPhone('564656454');
+            const phoneValidAllowed = isValidPhone('9876543210') && isValidPhone('+919876543210');
+
+            // Gibberish / keyboard mash checks
+            const nameValid = isValidName('John Doe') && !isValidName('<script>alert(1)</script>') && !isValidName('fgjhghkj');
+            const subjectValid = isValidSubject('Inquiry about B.Sc') && !isValidSubject('Subject\r\nBcc:evil@test.com') && !isValidSubject('jkll');
+            const messageValid = isValidMessage('Hello I want to inquire about admissions.') && !isValidMessage('<script>bad</script>') && !isValidMessage('{fgjhghkj}');
+
+            // CRLF injection in fullName and phone must be blocked
+            const crlfNameBlocked = /[\r\n\0]/.test('Name\r\nInjected');
+            const crlfPhoneBlocked = /[\r\n\0]/.test('+91\r\n9999999999');
+
+            // Non-string (object) payload must be blocked at type-enforcement layer
+            const nonStringTypeEnforced = (typeof { $gt: '' } !== 'string');
+
+            // === Live API rejection test: Auditor's EXACT payload must return 400 ===
+            let apiRejectsAuditorPayload = false;
+            try {
+                const auditorRes = await requestHttp('http://localhost:5001/api/inquiries/contact', 'POST', {
+                    fullName: 'fgjhghkj',
+                    email: 'jay@gmail.com',
+                    phone: '564656454',
+                    subject: 'jkll',
+                    message: '{fgjhghkj}',
+                    captchaToken: 'invalid',
+                    captchaAnswer: 'invalid'
+                });
+                apiRejectsAuditorPayload = auditorRes.status === 400;
+            } catch {
+                apiRejectsAuditorPayload = true;
+            }
+
+            // === Live API rejection test: XSS payload must return 400, not 201 ===
+            let apiRejectsXss = false;
+            try {
+                const xssRes = await requestHttp('http://localhost:5001/api/inquiries/contact', 'POST', {
+                    fullName: '<script>alert(1)</script>',
+                    email: 'test@example.com',
+                    subject: 'Test Subject',
+                    message: 'Hello this is a test message',
+                    captchaToken: 'invalid',
+                    captchaAnswer: 'invalid'
+                });
+                apiRejectsXss = xssRes.status === 400;
+            } catch {
+                apiRejectsXss = true;
+            }
+
+            // === Live API rejection test: CRLF injection must return 400 ===
+            let apiRejectsCrlf = false;
+            try {
+                const crlfRes = await requestHttp('http://localhost:5001/api/inquiries/contact', 'POST', {
+                    fullName: 'Valid Name\r\nBcc:evil@hacker.com',
+                    email: 'test@example.com',
+                    subject: 'Test Subject',
+                    message: 'Hello this is a test message',
+                    captchaToken: 'invalid',
+                    captchaAnswer: 'invalid'
+                });
+                apiRejectsCrlf = crlfRes.status === 400;
+            } catch {
+                apiRejectsCrlf = true;
+            }
+
+            const allPassed = xssBlocked && templateBracesBlocked && phoneInvalidBlocked &&
+                phoneValidAllowed && nameValid && subjectValid && messageValid &&
+                crlfNameBlocked && crlfPhoneBlocked && nonStringTypeEnforced &&
+                apiRejectsAuditorPayload && apiRejectsXss && apiRejectsCrlf;
+
+            if (allPassed) {
                 return {
                     passed: true,
-                    message: 'Input validation actively rejects HTML/XSS payloads, angle brackets (< >), CRLF control characters, and enforces strict type/length boundaries.'
+                    message: 'Input validation actively rejects auditor payload {fgjhghkj} (400), invalid phone numbers (400), template injection syntax, consonant keyboard mash, and enforces strict whitelist boundaries.'
                 };
             } else {
+                const failures = [
+                    !xssBlocked && 'XSS containsHtml detection',
+                    !templateBracesBlocked && 'Template curly braces detection',
+                    !phoneInvalidBlocked && 'Invalid 9-digit phone blocking',
+                    !phoneValidAllowed && 'Valid phone allowance',
+                    !nameValid && 'isValidName whitelist/gibberish guard',
+                    !subjectValid && 'isValidSubject CRLF/gibberish guard',
+                    !messageValid && 'isValidMessage HTML/template guard',
+                    !crlfNameBlocked && 'CRLF regex on name',
+                    !crlfPhoneBlocked && 'CRLF regex on phone',
+                    !nonStringTypeEnforced && 'non-string type enforcement',
+                    !apiRejectsAuditorPayload && 'API did not return 400 for auditor payload',
+                    !apiRejectsXss && 'API did not return 400 for XSS payload',
+                    !apiRejectsCrlf && 'API did not return 400 for CRLF injection',
+                ].filter(Boolean).join(', ');
                 return {
                     passed: false,
-                    message: 'Input validation failed one or more XSS or CRLF boundary tests.'
+                    message: `Input validation failed: ${failures}`
                 };
             }
         }

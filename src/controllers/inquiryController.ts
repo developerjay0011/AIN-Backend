@@ -11,6 +11,7 @@ import {
     isValidPhone,
     isValidName,
     containsHtml,
+    containsDangerousChars,
     isValidSubject,
     isValidMessage
 } from '../utils/sanitize.js';
@@ -47,18 +48,50 @@ const verifyCaptcha = (token: string, answer: string) => {
 // --- Admission Inquiries ---
 
 export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Response) => {
-    const raw = req.body;
+    // Use req.rawBody (original, pre-sanitization body) for rejection checks.
+    // This ensures malicious payloads are actively rejected with 400 rather than
+    // silently stripped by sanitizeMiddleware and accepted with 201 (CWE-20 fix).
+    const original = (req as any).rawBody || req.body;
+    const raw = req.body; // already sanitized by middleware
 
-    // Check for any HTML injection across all inputs
+    // === Strict parameter whitelist and prototype pollution prevention (CWE-20) ===
+    const allowedAdmissionFields = new Set(['studentName', 'parentName', 'email', 'phone', 'grade', 'message', 'captchaToken', 'captchaAnswer']);
+    for (const key of Object.keys(original)) {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+            throw new ApiError(400, 'Prototype pollution attempt detected');
+        }
+        if (!allowedAdmissionFields.has(key)) {
+            throw new ApiError(400, `Unexpected field '${key}' is not allowed in form submissions`);
+        }
+    }
+
+    // === Strict type enforcement: all expected fields must be plain strings ===
+    const stringFields = ['studentName', 'parentName', 'email', 'phone', 'grade', 'message', 'captchaToken', 'captchaAnswer'];
+    for (const field of stringFields) {
+        const val = original[field];
+        if (val !== undefined && val !== null && typeof val !== 'string') {
+            throw new ApiError(400, `Invalid input: '${field}' must be a plain text string`);
+        }
+    }
+
+    // === Reject malicious content detected in the ORIGINAL (pre-sanitized) body ===
     if (
-        containsHtml(raw.studentName) ||
-        containsHtml(raw.parentName) ||
-        containsHtml(raw.email) ||
-        containsHtml(raw.phone) ||
-        containsHtml(raw.grade) ||
-        containsHtml(raw.message)
+        containsDangerousChars(original.studentName) ||
+        containsDangerousChars(original.parentName) ||
+        containsDangerousChars(original.email) ||
+        containsDangerousChars(original.phone) ||
+        containsDangerousChars(original.grade) ||
+        containsDangerousChars(original.message)
     ) {
-        throw new ApiError(400, 'HTML tags, script elements, and angle brackets (< >) are not allowed in form submissions');
+        throw new ApiError(400, 'HTML tags, script elements, angle brackets (< >), curly braces ({ }), and dangerous characters are not allowed in form submissions');
+    }
+
+    // Reject CRLF injection in name, grade, and phone (header injection / log poisoning)
+    if (/[\r\n\0]/.test(original.studentName || '') ||
+        /[\r\n\0]/.test(original.parentName || '') ||
+        /[\r\n\0]/.test(original.phone || '') ||
+        /[\r\n\0]/.test(original.grade || '')) {
+        throw new ApiError(400, 'Control characters (newlines, null bytes) are not permitted in form fields');
     }
 
     const studentName = sanitizeString(raw.studentName);
@@ -73,11 +106,11 @@ export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Res
     }
 
     if (!isValidName(studentName)) {
-        throw new ApiError(400, 'Invalid Student Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
+        throw new ApiError(400, 'Invalid Student Name format. Names must be 2-50 characters, contain valid syllables/vowels, and no keyboard mash or special characters.');
     }
 
     if (!isValidName(parentName)) {
-        throw new ApiError(400, 'Invalid Parent Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
+        throw new ApiError(400, 'Invalid Parent Name format. Names must be 2-50 characters, contain valid syllables/vowels, and no keyboard mash or special characters.');
     }
 
     const emailCheck = await validateEmailDeliverable(email);
@@ -86,11 +119,12 @@ export const createAdmissionInquiry = asyncHandler(async (req: Request, res: Res
     }
 
     if (!isValidPhone(phone)) {
-        throw new ApiError(400, 'Invalid Phone number format');
+        throw new ApiError(400, 'Invalid Phone number format. Please enter a valid 10-digit Indian mobile number or international format (+...).');
     }
 
-    if (raw.message && !isValidMessage(raw.message, 1, 3000)) {
-        throw new ApiError(400, 'Message cannot exceed 3000 characters and must not contain HTML tags');
+    // Validate message using the sanitized variable (not raw) for length/content checks
+    if (message && !isValidMessage(message, 1, 3000)) {
+        throw new ApiError(400, 'Message cannot exceed 3000 characters and must not contain HTML tags, template injection ({ }), or keyboard gibberish');
     }
 
     // Verify CAPTCHA
@@ -147,17 +181,47 @@ export const deleteAdmissionInquiry = asyncHandler(async (req: Request, res: Res
 // --- Contact Inquiries ---
 
 export const createContactInquiry = asyncHandler(async (req: Request, res: Response) => {
-    const raw = req.body;
+    // Use req.rawBody (original, pre-sanitization body) for rejection checks.
+    // This ensures malicious payloads are actively rejected with 400 rather than
+    // silently stripped by sanitizeMiddleware and accepted with 201 (CWE-20 fix).
+    const original = (req as any).rawBody || req.body;
+    const raw = req.body; // already sanitized by middleware
 
-    // Check for any HTML injection across all inputs
+    // === Strict parameter whitelist and prototype pollution prevention (CWE-20) ===
+    const allowedContactFields = new Set(['fullName', 'email', 'phone', 'subject', 'message', 'captchaToken', 'captchaAnswer']);
+    for (const key of Object.keys(original)) {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+            throw new ApiError(400, 'Prototype pollution attempt detected');
+        }
+        if (!allowedContactFields.has(key)) {
+            throw new ApiError(400, `Unexpected field '${key}' is not allowed in form submissions`);
+        }
+    }
+
+    // === Strict type enforcement: all expected fields must be plain strings ===
+    const stringFields = ['fullName', 'email', 'phone', 'subject', 'message', 'captchaToken', 'captchaAnswer'];
+    for (const field of stringFields) {
+        const val = original[field];
+        if (val !== undefined && val !== null && typeof val !== 'string') {
+            throw new ApiError(400, `Invalid input: '${field}' must be a plain text string`);
+        }
+    }
+
+    // === Reject malicious content detected in the ORIGINAL (pre-sanitized) body ===
     if (
-        containsHtml(raw.fullName) ||
-        containsHtml(raw.email) ||
-        containsHtml(raw.phone) ||
-        containsHtml(raw.subject) ||
-        containsHtml(raw.message)
+        containsDangerousChars(original.fullName) ||
+        containsDangerousChars(original.email) ||
+        containsDangerousChars(original.phone) ||
+        containsDangerousChars(original.subject) ||
+        containsDangerousChars(original.message)
     ) {
-        throw new ApiError(400, 'HTML tags, script elements, and angle brackets (< >) are not allowed in form submissions');
+        throw new ApiError(400, 'HTML tags, script elements, angle brackets (< >), curly braces ({ }), and dangerous characters are not allowed in form submissions');
+    }
+
+    // Reject CRLF injection in name and phone (prevents header injection / log poisoning)
+    if (/[\r\n\0]/.test(original.fullName || '') ||
+        /[\r\n\0]/.test(original.phone || '')) {
+        throw new ApiError(400, 'Control characters (newlines, null bytes) are not permitted in form fields');
     }
 
     const fullName = sanitizeString(raw.fullName);
@@ -171,7 +235,7 @@ export const createContactInquiry = asyncHandler(async (req: Request, res: Respo
     }
 
     if (!isValidName(fullName)) {
-        throw new ApiError(400, 'Invalid Full Name format. Names must be 2-50 characters and contain only letters and standard name characters.');
+        throw new ApiError(400, 'Invalid Full Name format. Names must be 2-50 characters, contain valid syllables/vowels, and no keyboard mash or special characters.');
     }
 
     const emailCheck = await validateEmailDeliverable(email);
@@ -180,15 +244,18 @@ export const createContactInquiry = asyncHandler(async (req: Request, res: Respo
     }
 
     if (phone && !isValidPhone(phone)) {
-        throw new ApiError(400, 'Invalid Phone number format');
+        throw new ApiError(400, 'Invalid Phone number format. Please enter a valid 10-digit Indian mobile number or international format (+...).');
     }
 
-    if (!isValidSubject(raw.subject)) {
-        throw new ApiError(400, 'Subject must be between 2 and 150 characters and cannot contain HTML or newlines');
+    // Validate subject and message using sanitized variables (not raw) — fixes the
+    // previous inconsistency where raw.subject / raw.message were validated after
+    // the middleware had already modified them via sanitizeDeep.
+    if (!isValidSubject(subject)) {
+        throw new ApiError(400, 'Subject must be between 3 and 150 characters and cannot contain HTML, template injection ({ }), or keyboard gibberish');
     }
 
-    if (!isValidMessage(raw.message)) {
-        throw new ApiError(400, 'Message must be between 5 and 3000 characters and cannot contain HTML tags');
+    if (!isValidMessage(message)) {
+        throw new ApiError(400, 'Message must be between 5 and 3000 characters and cannot contain HTML tags, template injection ({ }), or keyboard gibberish');
     }
 
     // Verify CAPTCHA

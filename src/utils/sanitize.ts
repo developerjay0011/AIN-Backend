@@ -29,8 +29,94 @@ export function sanitizeString(value: unknown): string {
         .replace(/\bjavascript:[^\s'"]*/gi, '') // strip javascript: pseudo-protocol
         .replace(/\bdata:\s*text\/html[^\s'"]*/gi, '') // strip data:text/html
         .replace(/\bvbscript:[^\s'"]*/gi, '') // strip vbscript:
-        .replace(/[<>]/g, '') // strip remaining raw angle brackets
+        .replace(/[<>{}`]/g, '') // strip remaining raw angle brackets, curly braces, backticks
         .trim();
+}
+
+/**
+ * Decodes numeric and named HTML entities (e.g. &#x3C;, &lt;) to unmask obfuscated injection payloads.
+ */
+export function decodeHtmlEntities(value: string): string {
+    if (!value || typeof value !== 'string') return '';
+    return value
+        .replace(/&#x([0-9a-fA-F]+);?/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+        .replace(/&#([0-9]+);?/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#x27;/gi, "'")
+        .replace(/&apos;/gi, "'")
+        .replace(/&amp;/gi, '&');
+}
+
+/**
+ * Checks if a string contains SQL injection signatures.
+ */
+export function containsSqlInjection(value: unknown): boolean {
+    if (typeof value !== 'string') return false;
+    const s = value.normalize('NFKC');
+    // SQL comments
+    if (/(--|\/\*|\*\/|;\s*--|#)/.test(s)) return true;
+    // SQL stacked statements, drops, deletes, updates, alters
+    if (/;\s*(?:DROP|DELETE|UPDATE|INSERT|SELECT|EXEC|ALTER|CREATE|TRUNCATE)\b/i.test(s)) return true;
+    // UNION SELECT
+    if (/\bUNION\s+(?:ALL\s+)?SELECT\b/i.test(s)) return true;
+    // Tautologies like ' OR '1'='1, " OR ""=", ' OR 1=1, ' OR 'a'='a', ) OR ('1'='1
+    if (/['"]\s*OR\s+['"\d\w]+=['"\d\w]+/i.test(s)) return true;
+    if (/\bOR\s+1\s*=\s*1\b/i.test(s)) return true;
+    if (/\bOR\s+['"]\w+['"]\s*=\s*['"]\w+['"]/i.test(s)) return true;
+    if (/\bAND\s+['"\d\w]+=['"\d\w]+/i.test(s)) return true;
+    if (/\bWAITFOR\s+DELAY\b/i.test(s)) return true;
+    if (/\bpg_sleep\s*\(/i.test(s)) return true;
+    if (/\bSLEEP\s*\(\d+\)/i.test(s)) return true;
+    if (/\bORDER\s+BY\s+\d+--/i.test(s)) return true;
+    if (/\bHAVING\s+\d+\s*=\s*\d+/i.test(s)) return true;
+    if (/\bEXEC\s+(?:xp_|sp_)/i.test(s)) return true;
+    if (/\bSELECT\s+.*FROM\b/i.test(s)) return true;
+    return false;
+}
+
+/**
+ * Checks if a string contains command injection or directory traversal signatures.
+ */
+export function containsCommandOrTraversal(value: unknown): boolean {
+    if (typeof value !== 'string') return false;
+    const s = value.normalize('NFKC');
+    // Path traversal: ../, ..\, ....//
+    if (/(?:\.\.[/\\]){2,}|\.{3,}[/\\]|%2e%2e/i.test(s)) return true;
+    // Shell command chaining: ; ls, | cat, & net user, & id, $(whoami), `id`
+    if (/[;&|`$]\s*(?:cat|dir|whoami|net\s+user|id\b|ls\b|ping\b|curl\b|wget\b|nslookup\b|powershell|bash|sh\b)/i.test(s)) return true;
+    return false;
+}
+
+/**
+ * Checks if a string contains dangerous characters such as HTML/XML tags,
+ * template injection syntax ({ }, $), backslashes, backticks, control characters, pseudo-protocols,
+ * SQL injection, or command injection/traversal.
+ */
+export function containsDangerousChars(value: unknown): boolean {
+    if (typeof value !== 'string') return false;
+    const decoded = decodeHtmlEntities(value).normalize('NFKC');
+
+    // 1. HTML / Script / XSS / Event handlers / pseudo-protocols
+    if (
+        /<[^>]*>|<\s*\/?\s*[a-zA-Z]|[<>{}$\\^~|`]|[\0]|\b(on\w+)\s*=|\bjavascript:|\bdata:\s*text\/html|\bvbscript:/i.test(decoded) ||
+        /<[^>]*>|<\s*\/?\s*[a-zA-Z]|[<>{}$\\^~|`]|[\0]|\b(on\w+)\s*=|\bjavascript:|\bdata:\s*text\/html|\bvbscript:/i.test(value)
+    ) {
+        return true;
+    }
+
+    // 2. SQL injection
+    if (containsSqlInjection(value) || containsSqlInjection(decoded)) {
+        return true;
+    }
+
+    // 3. Command injection and Path Traversal
+    if (containsCommandOrTraversal(value) || containsCommandOrTraversal(decoded)) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -101,6 +187,16 @@ export function isValidEmail(email: unknown): boolean {
     const labels = domainPart.split('.');
     const mainLabels = labels.slice(0, -1);
     if (mainLabels.every(label => /^[0-9]+$/.test(label))) return false;
+
+    // Block known disposable / burner temporary email domains
+    const DISPOSABLE_DOMAINS = new Set([
+        'tempmail.com', 'temp-mail.org', 'tempmail.net', 'tempmailo.com',
+        'mailinator.com', 'guerrillamail.com', 'guerrillamail.net', 'guerrillamail.org',
+        'trashmail.com', 'trashmail.net', '10minutemail.com', '10minutemail.net',
+        'yopmail.com', 'yopmail.net', 'throwawaymail.com', 'dispostable.com',
+        'getairmail.com', 'sharklasers.com', 'fakeinbox.com', 'generator.email'
+    ]);
+    if (DISPOSABLE_DOMAINS.has(domainPart)) return false;
 
     return true;
 }
@@ -175,43 +271,113 @@ export async function validateEmailDeliverable(
 }
 
 /**
- * Validates standard phone numbers (7-20 characters, international format).
+ * Validates standard phone numbers.
+ * Strictly enforces 10-digit Indian numbers (starting with 6-9, optional +91/0 prefix)
+ * or international E.164 numbers (+ followed by 10-15 digits).
+ * Actively blocks dummy repeating digits and invalid short numbers (e.g. 9-digit '564656454').
  */
 export function isValidPhone(phone: unknown): boolean {
     if (typeof phone !== 'string') return false;
     const trimmed = phone.trim();
-    return /^[+0-9\s()-]{7,20}$/.test(trimmed);
+    const cleaned = trimmed.replace(/[\s()-]/g, '');
+
+    // Must consist only of digits, optionally prefixed with a single '+'
+    if (!/^\+?\d+$/.test(cleaned)) return false;
+
+    // Reject numbers shorter than 10 digits or longer than 16 characters
+    const digitsOnly = cleaned.replace(/^\+/, '');
+    if (digitsOnly.length < 10 || digitsOnly.length > 15) return false;
+
+    // Reject dummy identical repeating digits (e.g. 9999999999, 0000000000)
+    if (/^(\d)\1+$/.test(digitsOnly)) return false;
+
+    // 1. Indian Mobile Number (10 digits starting with 6, 7, 8, 9, with optional +91, 91, or 0 prefix)
+    const indianMatch = cleaned.match(/^(?:(?:\+|00)?91|0)?([6-9]\d{9})$/);
+    if (indianMatch) {
+        const nationalNumber = indianMatch[1];
+        if (/^(\d)\1{9}$/.test(nationalNumber)) return false;
+        return true;
+    }
+
+    // 2. International E.164 format: must start with '+' and have 10-15 digits total (excluding +91 which was validated above)
+    if (/^\+[1-9]\d{9,14}$/.test(cleaned)) {
+        if (cleaned.startsWith('+91')) return false;
+        return true;
+    }
+
+    return false;
 }
 
 /**
- * Validates personal full names (2-50 chars, alphabetic and standard name characters).
+ * Validates personal full names (2-50 chars).
+ * Whitelist: alphabetic letters, spaces, dots, hyphens, and apostrophes.
+ * Rejects keyboard mashing, consonant clusters (e.g. 'fgjhghkj'), and special characters.
  */
 export function isValidName(name: unknown): boolean {
     if (typeof name !== 'string') return false;
     const trimmed = name.trim();
-    return /^[a-zA-Z\s.'-]{2,50}$/.test(trimmed);
-}
-
-/**
- * Validates subject field (no HTML, no newlines/CRLF).
- */
-export function isValidSubject(subject: unknown, minLength = 2, maxLength = 150): boolean {
-    if (typeof subject !== 'string') return false;
-    const trimmed = subject.trim();
-    if (trimmed.length < minLength || trimmed.length > maxLength) return false;
-    if (containsHtml(trimmed)) return false;
-    if (/[\r\n\t\0]/.test(trimmed)) return false;
+    if (trimmed.length < 2 || trimmed.length > 50) return false;
+    // Whitelist only letters, spaces, dots, hyphens, and apostrophes
+    if (!/^[a-zA-Z\s.'-]+$/.test(trimmed)) return false;
+    // Reject HTML or dangerous characters
+    if (containsDangerousChars(trimmed)) return false;
+    // Must contain at least one vowel (a, e, i, o, u, y)
+    if (!/[aeiouyAEIOUY]/.test(trimmed)) return false;
+    // Must contain at least one valid word of 2+ letters
+    if (!/[a-zA-Z]{2,}/.test(trimmed)) return false;
+    // Reject 5 or more consecutive consonants (blocks keyboard mashing like "fgjhghkj")
+    if (/[bcdfghjklmnpqrstvwxz]{5,}/i.test(trimmed)) return false;
+    // Reject 4 or more repeated identical characters (e.g. "aaaa")
+    if (/(.)\1{3,}/.test(trimmed)) return false;
     return true;
 }
 
 /**
- * Validates message or description field (no HTML tags).
+ * Validates subject field (3-150 chars).
+ * Disallows HTML, newlines, and dangerous template/code/SQL injection characters.
+ * Rejects pure consonant gibberish (e.g. 'jkll', 'fgjhghkj') and non-word noise.
+ */
+export function isValidSubject(subject: unknown, minLength = 3, maxLength = 150): boolean {
+    if (typeof subject !== 'string') return false;
+    const trimmed = subject.trim();
+    if (trimmed.length < minLength || trimmed.length > maxLength) return false;
+    // Reject HTML, control chars, SQL injection, command injection, and template injection
+    if (containsDangerousChars(trimmed)) return false;
+    if (/[\r\n\t\0]/.test(trimmed)) return false;
+    // Whitelist allowed characters: letters, numbers, spaces, and safe punctuation
+    if (!/^[a-zA-Z0-9\s.,!?'":\-\/()&]+$/.test(trimmed)) return false;
+    // Must contain at least one vowel
+    if (!/[aeiouyAEIOUY]/.test(trimmed)) return false;
+    // Must contain at least one valid alphabetical word with 2 or more letters
+    if (!/[a-zA-Z]{2,}/.test(trimmed)) return false;
+    // Reject 5 or more consecutive consonants
+    if (/[bcdfghjklmnpqrstvwxz]{5,}/i.test(trimmed)) return false;
+    // Reject 4 or more repeated identical characters
+    if (/(.)\1{3,}/.test(trimmed)) return false;
+    return true;
+}
+
+/**
+ * Validates message or description field (5-3000 chars).
+ * Disallows HTML tags, script elements, and dangerous characters / template injection: < > { } $ \ ^ ~ | `
+ * Rejects keyboard mash / consonant clusters (e.g. '{fgjhghkj}').
  */
 export function isValidMessage(message: unknown, minLength = 5, maxLength = 3000): boolean {
     if (typeof message !== 'string') return false;
     const trimmed = message.trim();
     if (trimmed.length < minLength || trimmed.length > maxLength) return false;
+    // Disallow HTML tags, script elements, and dangerous characters / template injection: < > { } $ \ ^ ~ | `
+    if (containsDangerousChars(trimmed)) return false;
     if (containsHtml(trimmed)) return false;
+    // Must contain at least one vowel or digit
+    if (!/[aeiouyAEIOUY0-9]/.test(trimmed)) return false;
+    // Words must not contain 6 or more consecutive consonants (rejects keyboard mash)
+    const words = trimmed.split(/[\s\r\n]+/);
+    for (const word of words) {
+        if (/[bcdfghjklmnpqrstvwxz]{6,}/i.test(word)) return false;
+    }
+    // Reject 5 or more repeated identical characters
+    if (/(.)\1{4,}/.test(trimmed)) return false;
     return true;
 }
 

@@ -1,7 +1,53 @@
+import fs from 'fs';
+import path from 'path';
 import pool from '../config/db.js';
 
 export const seedPublications = async () => {
     console.log('📚 Seeding Publications Data...');
+
+    // Ensure dummy.pdf exists for seed document references
+    const dummyPdfPath = path.join(process.cwd(), 'uploads/documents/general/dummy.pdf');
+    if (!fs.existsSync(dummyPdfPath)) {
+        fs.mkdirSync(path.dirname(dummyPdfPath), { recursive: true });
+        const samplePdfContent = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 60 >>
+stream
+BT
+/F1 24 Tf
+100 700 Td
+(Army Institute of Nursing - Sample Document) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000060 00000 n 
+0000000117 00000 n 
+0000000244 00000 n 
+0000000355 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+429
+%%EOF
+`;
+        fs.writeFileSync(dummyPdfPath, samplePdfContent, 'ascii');
+    }
 
     const publicationsData = [
         // Journals
@@ -94,6 +140,7 @@ export const seedPublications = async () => {
             author: 'Dr. Sanjay Kalita',
             initials: 'SK',
             department: 'Community Health Nursing',
+            fileUrl: JSON.stringify(['/uploads/documents/general/dummy.pdf']),
             papers: JSON.stringify([
                 'Community-based Rehabilitation Models (2025)',
                 'Maternal Nutrition Indices (2024)'
@@ -105,6 +152,7 @@ export const seedPublications = async () => {
             author: 'Mrs. Sangeeta Das',
             initials: 'SD',
             department: 'Obstetrics & Gynaecological Nursing',
+            fileUrl: JSON.stringify(['/uploads/documents/general/dummy.pdf']),
             papers: JSON.stringify([
                 'Midwifery Practices in Assam (2025)',
                 'Postpartum Depression Screening (2023)'
@@ -116,6 +164,7 @@ export const seedPublications = async () => {
             author: 'Dr. Pallav Bora',
             initials: 'PB',
             department: 'Medical-Surgical Nursing',
+            fileUrl: JSON.stringify(['/uploads/documents/general/dummy.pdf']),
             papers: JSON.stringify([
                 'Perioperative Nursing Standards (2025)',
                 'Pain Management Strategies (2024)'

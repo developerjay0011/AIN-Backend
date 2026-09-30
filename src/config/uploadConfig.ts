@@ -12,10 +12,19 @@ uploadDirs.forEach(dir => {
 });
 
 /**
+ * Whitelist of strictly permitted file extensions
+ */
+const ALLOWED_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.heic', '.heif',
+  '.pdf', '.doc', '.docx',
+  '.mp4', '.webm', '.mov'
+]);
+
+/**
  * Strict mapping of allowed MIME types to their valid extensions
  */
 const ALLOWED_MIME_MAP: Record<string, string[]> = {
-  // Images (strictly raster/vector web safe; SVGs strictly excluded to prevent stored XSS / XML injection)
+  // Images (SVG is strictly forbidden to prevent stored XSS)
   'image/jpeg': ['.jpg', '.jpeg'],
   'image/png': ['.png'],
   'image/webp': ['.webp'],
@@ -36,17 +45,18 @@ const ALLOWED_MIME_MAP: Record<string, string[]> = {
 };
 
 /**
- * Blacklist of dangerous extensions and executable file signatures
+ * Comprehensive blacklist of executable script and dangerous extensions
  */
-const DANGEROUS_EXTENSIONS = /\.(php|phtml|php\d|jsp|jspx|asp|aspx|sh|bash|exe|bat|cmd|html|htm|xhtml|shtml|svg|xml|js|mjs|vbs|phar|pht|cgi|pl|py|htaccess|config|env|jar)(\.|$)/i;
+const DANGEROUS_PATTERNS = /(php|phtml|php\d|jsp|jspx|asp|aspx|sh|bash|exe|bat|cmd|html|htm|xhtml|shtml|svg|xml|js|mjs|vbs|phar|pht|cgi|pl|py|htaccess|config|env|jar)/i;
 
 /**
  * Global File Filter for security validation
  * Enforces:
- * 1. Whitelist-only extensions
- * 2. Strict MIME-type match
- * 3. Double-extension rejection (e.g. payload.svg.jpeg, shell.php.png)
- * 4. Null-byte and path-traversal prevention
+ * 1. Single-extension limit (bans double extensions like payload.svg.jpeg, shell.php.png)
+ * 2. Whitelist-only extensions (.jpg, .png, .pdf, etc.)
+ * 3. Strict MIME-type to extension matching
+ * 4. Dangerous script pattern rejection anywhere in original filename
+ * 5. Null-byte and path-traversal prevention
  */
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const originalName = file.originalname.trim();
@@ -57,37 +67,31 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     return cb(new Error('Invalid filename detected (Security violation)'));
   }
 
-  // 2. Reject if any part of the filename matches dangerous extensions (Double extension prevention)
-  if (DANGEROUS_EXTENSIONS.test(originalName)) {
-    console.warn(`[UPLOAD BLOCKED] Dangerous / double extension detected: ${originalName}`);
+  // 2. Reject multi-dot / double-extension filenames (e.g. file.svg.jpeg, payload.php.png)
+  const parts = originalName.split('.');
+  if (parts.length > 2) {
+    console.warn(`[UPLOAD BLOCKED] Multiple extensions / multi-dot filename rejected: ${originalName}`);
+    return cb(new Error('File upload rejected: Double extensions (e.g., .svg.jpeg, .php.jpg) are strictly prohibited.'));
+  }
+
+  // 3. Extract and validate final extension against whitelist
+  const ext = path.extname(originalName).toLowerCase();
+  if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
+    console.warn(`[UPLOAD BLOCKED] Non-whitelisted extension: ${originalName} (${ext})`);
+    return cb(new Error(`File upload rejected: Extension '${ext}' is not permitted.`));
+  }
+
+  // 4. Reject if any portion of filename matches dangerous patterns (e.g., php, jsp, html, svg)
+  if (DANGEROUS_PATTERNS.test(originalName)) {
+    console.warn(`[UPLOAD BLOCKED] Dangerous script pattern detected in filename: ${originalName}`);
     return cb(new Error('File upload rejected: Executable or script extensions (including .svg, .php, .jsp, .html) are strictly prohibited.'));
   }
 
-  // 3. Extract and check the final extension
-  const ext = path.extname(originalName).toLowerCase();
-  if (!ext) {
-    console.warn(`[UPLOAD BLOCKED] Missing extension: ${originalName}`);
-    return cb(new Error('File upload rejected: Files must have a valid extension.'));
-  }
-
-  // 4. Validate MIME Type against the strict whitelist map
+  // 5. Validate MIME Type against the strict whitelist map
   const validExtensionsForMime = ALLOWED_MIME_MAP[file.mimetype.toLowerCase()];
   if (!validExtensionsForMime || !validExtensionsForMime.includes(ext)) {
     console.warn(`[UPLOAD BLOCKED] Mismatched MIME (${file.mimetype}) vs Extension (${ext}) for: ${originalName}`);
     return cb(new Error('File upload rejected: Content type does not match the allowed file extension.'));
-  }
-
-  // 5. Additional check for multiple dots in the filename
-  const parts = originalName.split('.');
-  if (parts.length > 2) {
-    // If multiple dots exist, verify none of the intermediate segments resemble an extension
-    for (let i = 1; i < parts.length - 1; i++) {
-      const segment = parts[i].toLowerCase();
-      if (DANGEROUS_EXTENSIONS.test(`.${segment}.`) || DANGEROUS_EXTENSIONS.test(`.${segment}`)) {
-        console.warn(`[UPLOAD BLOCKED] Multi-dot suspicious segment: ${originalName}`);
-        return cb(new Error('File upload rejected: Double extensions are not permitted.'));
-      }
-    }
   }
 
   return cb(null, true);
@@ -109,7 +113,6 @@ export const categoryUpload = (category: string) => {
 
       const dir = path.join('uploads', type, category);
 
-      // Ensure directory exists dynamically as needed
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
@@ -139,4 +142,3 @@ export const categoryUpload = (category: string) => {
  * Saves to uploads/[type]/general/
  */
 export const upload = categoryUpload('general');
-

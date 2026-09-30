@@ -12,8 +12,11 @@ export const errorHandler = (
 ) => {
   let { statusCode, message } = err;
 
-  // Default to 500 if no status code is provided
-  if (!statusCode) {
+  // Handle Multer upload errors or generic file validation errors as 400 Bad Request
+  if (err.name === 'MulterError' || (err.message && !statusCode)) {
+    statusCode = err.statusCode || 400;
+    message = err.message || 'File upload validation failed';
+  } else if (!statusCode) {
     statusCode = 500;
     message = 'Internal Server Error';
   }

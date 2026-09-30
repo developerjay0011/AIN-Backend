@@ -542,7 +542,7 @@ const migrate = async () => {
           topic VARCHAR(255) DEFAULT NULL,
           description TEXT DEFAULT NULL,
           img VARCHAR(255) DEFAULT NULL,
-          fileUrl VARCHAR(255) DEFAULT NULL,
+          fileUrl TEXT DEFAULT NULL,
           papers TEXT DEFAULT NULL,
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -563,6 +563,13 @@ const migrate = async () => {
       console.log('✓ Migration: Dropped unused doi column from publications');
     } catch (e) {
       // column likely already dropped or does not exist
+    }
+
+    try {
+      await pool.query('ALTER TABLE publications MODIFY COLUMN fileUrl TEXT DEFAULT NULL');
+      console.log('✓ Migration: Modified fileUrl column to TEXT in publications');
+    } catch (e) {
+      // column already modified
     }
 
     try {

@@ -3,21 +3,31 @@ dotenv.config();
 
 const BASE_URL = process.env.APP_URL || 'http://localhost:5001';
 
+const formatSingleUrl = (path: string): string => {
+  if (!path || path === '[object Object]') return '';
+  let cleanPath = typeof path === 'string' ? path.replace(/http:\/\/localhost:5001/g, '') : '';
+  if (cleanPath.startsWith('http')) return cleanPath;
+  cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+  return `${BASE_URL}${cleanPath}`;
+};
+
 /**
  * Ensures a file path is a complete URL by prepending the base URL if necessary.
- * Handles both strings and arrays of objects with standard media keys.
+ * Handles single string URLs, JSON array strings, and arrays of objects.
  */
 export const formatFileUrl = (path: string | null | undefined): string => {
   if (!path || path === '[object Object]') return '';
 
-  // If the path contains localhost:5001, strip it to make it relative
-  let cleanPath = typeof path === 'string' ? path.replace(/http:\/\/localhost:5001/g, '') : '';
+  if (typeof path === 'string' && path.trim().startsWith('[') && path.trim().endsWith(']')) {
+    try {
+      const parsed = JSON.parse(path);
+      if (Array.isArray(parsed)) {
+        return JSON.stringify(parsed.map((p: any) => typeof p === 'string' ? formatSingleUrl(p) : p));
+      }
+    } catch { }
+  }
 
-  if (cleanPath.startsWith('http')) return cleanPath;
-
-  // Ensure we don't double slash
-  cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
-  return `${BASE_URL}${cleanPath}`;
+  return formatSingleUrl(path);
 };
 
 /**

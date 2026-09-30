@@ -125,8 +125,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(sanitizeMiddleware);
 
-// Trust the reverse proxy (crucial for cPanel/Apache/LiteSpeed) so rate limiters track real client IPs
-app.set('trust proxy', 1);
+// Trust reverse proxies (Cloudflare, Nginx, cPanel/Apache, LiteSpeed) so rate limiters extract true client IPs
+app.set('trust proxy', true);
 
 // Rate Limiting
 app.use('/api', apiLimiter);
@@ -140,11 +140,14 @@ app.use('/api/inquiries', (req, res, next) => {
 });
 
 // Static Files
-// Block directory listing for uploads directory by rejecting access to directories
+// Block directory listing and set strict security headers for uploads directory
 app.use('/uploads', (req, res, next) => {
   if (req.path === '/' || req.path === '' || req.path.endsWith('/')) {
     return res.status(403).json({ error: 'Directory listing is forbidden' });
   }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'none'; object-src 'none'");
+  res.setHeader('X-Frame-Options', 'DENY');
   next();
 });
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

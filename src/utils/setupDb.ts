@@ -528,7 +528,7 @@ const setupDatabase = async () => {
         topic VARCHAR(255) DEFAULT NULL,
         description TEXT DEFAULT NULL,
         img VARCHAR(255) DEFAULT NULL,
-        fileUrl VARCHAR(255) DEFAULT NULL,
+        fileUrl TEXT DEFAULT NULL,
         papers TEXT DEFAULT NULL,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

@@ -3,13 +3,26 @@ import { rateLimit } from 'express-rate-limit';
 const isDev = process.env.NODE_ENV === 'development';
 
 /**
+ * Helper to extract client IP behind reverse proxies (Cloudflare, Nginx, cPanel)
+ */
+const getClientIp = (req: any): string => {
+  return (
+    (req.headers['cf-connecting-ip'] as string) ||
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+    req.ip ||
+    req.socket?.remoteAddress ||
+    '127.0.0.1'
+  );
+};
+
+/**
  * General API rate limiter
  * Protects all /api endpoints from volumetric denial-of-service / brute-force attacks.
  */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: isDev ? 10000 : 300, // 300 requests per 15 minutes in production
-  skip: (req) => isDev || req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost',
+  keyGenerator: getClientIp,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -27,7 +40,7 @@ export const apiLimiter = rateLimit({
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: isDev ? 1000 : 5, // 5 login attempts per 15 minutes in production
-  skip: (req) => isDev && req.hostname === 'localhost' && req.headers['x-skip-ratelimit'] === 'true',
+  keyGenerator: getClientIp,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -45,7 +58,7 @@ export const loginLimiter = rateLimit({
 export const captchaLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: isDev ? 500 : 30, // 30 CAPTCHAs per 5 minutes in production
-  skip: (req) => isDev && req.hostname === 'localhost' && req.headers['x-skip-ratelimit'] === 'true',
+  keyGenerator: getClientIp,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -63,7 +76,7 @@ export const captchaLimiter = rateLimit({
 export const inquiryLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: isDev ? 1000 : 5, // 5 submissions per 5 minutes in production
-  skip: (req) => isDev || req.ip === '127.0.0.1' || req.ip === '::1' || req.hostname === 'localhost',
+  keyGenerator: getClientIp,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {

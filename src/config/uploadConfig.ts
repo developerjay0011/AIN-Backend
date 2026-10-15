@@ -44,18 +44,22 @@ const ALLOWED_MIME_MAP: Record<string, string[]> = {
   'video/quicktime': ['.mov']
 };
 
-/**
- * Comprehensive blacklist of executable script and dangerous extensions
- */
-const DANGEROUS_PATTERNS = /(php|phtml|php\d|jsp|jspx|asp|aspx|sh|bash|exe|bat|cmd|html|htm|xhtml|shtml|svg|xml|js|mjs|vbs|phar|pht|cgi|pl|py|htaccess|config|env|jar)/i;
+const DANGEROUS_EXTENSIONS = new Set([
+  'php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phps', 'pht', 'phar',
+  'jsp', 'jspx', 'jsw', 'jsv',
+  'asp', 'aspx', 'axd', 'ashx', 'asmx',
+  'sh', 'bash', 'zsh', 'exe', 'bat', 'cmd', 'com', 'scr', 'vbs', 'vbe',
+  'html', 'htm', 'xhtml', 'shtml', 'svg', 'xml', 'js', 'mjs', 'cjs',
+  'cgi', 'pl', 'py', 'pyc', 'pyo', 'htaccess', 'htpasswd', 'config', 'env', 'jar'
+]);
 
 /**
  * Global File Filter for security validation
  * Enforces:
- * 1. Single-extension limit (bans double extensions like payload.svg.jpeg, shell.php.png)
+ * 1. Single-extension / harmless multi-dot limits (bans dangerous double extensions like payload.svg.jpeg, shell.php.png)
  * 2. Whitelist-only extensions (.jpg, .png, .pdf, etc.)
  * 3. Strict MIME-type to extension matching
- * 4. Dangerous script pattern rejection anywhere in original filename
+ * 4. Dangerous script pattern rejection for intermediate and final extensions
  * 5. Null-byte and path-traversal prevention
  */
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
@@ -67,11 +71,19 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     return cb(new Error('Invalid filename detected (Security violation)'));
   }
 
-  // 2. Reject multi-dot / double-extension filenames (e.g. file.svg.jpeg, payload.php.png)
+  // 2. Extract parts and check intermediate extension parts for executable script spoofing
   const parts = originalName.split('.');
-  if (parts.length > 2) {
-    console.warn(`[UPLOAD BLOCKED] Multiple extensions / multi-dot filename rejected: ${originalName}`);
-    return cb(new Error('File upload rejected: Double extensions (e.g., .svg.jpeg, .php.jpg) are strictly prohibited.'));
+  if (parts.length < 2) {
+    console.warn(`[UPLOAD BLOCKED] No extension: ${originalName}`);
+    return cb(new Error('File upload rejected: Missing file extension.'));
+  }
+
+  const intermediateParts = parts.slice(1, -1);
+  for (const intermediate of intermediateParts) {
+    if (DANGEROUS_EXTENSIONS.has(intermediate.toLowerCase())) {
+      console.warn(`[UPLOAD BLOCKED] Dangerous intermediate extension: ${originalName} (.${intermediate})`);
+      return cb(new Error(`File upload rejected: Double extensions containing script format (.${intermediate}) are strictly prohibited.`));
+    }
   }
 
   // 3. Extract and validate final extension against whitelist
@@ -79,12 +91,6 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
     console.warn(`[UPLOAD BLOCKED] Non-whitelisted extension: ${originalName} (${ext})`);
     return cb(new Error(`File upload rejected: Extension '${ext}' is not permitted.`));
-  }
-
-  // 4. Reject if any portion of filename matches dangerous patterns (e.g., php, jsp, html, svg)
-  if (DANGEROUS_PATTERNS.test(originalName)) {
-    console.warn(`[UPLOAD BLOCKED] Dangerous script pattern detected in filename: ${originalName}`);
-    return cb(new Error('File upload rejected: Executable or script extensions (including .svg, .php, .jsp, .html) are strictly prohibited.'));
   }
 
   // 5. Validate MIME Type against the strict whitelist map

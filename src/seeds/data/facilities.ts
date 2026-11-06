@@ -70,6 +70,37 @@ export const initialHostelDetails = [
   }
 ];
 
+export const initialHostelFacilities = [
+  {
+    id: 'hostel-living-quarters',
+    title: 'Student Living Quarters & Dormitories',
+    description: 'Well-ventilated, secure, and fully furnished rooms with individual study desks, wardrobes, and comfortable bedding designed to provide a restful home-like environment.',
+    image: '/uploads/images/settings/classroom.jpg',
+    features: ['Furnished rooms', 'Ergonomic study desks', '24/7 Power Backup', 'Daily housekeeping']
+  },
+  {
+    id: 'hostel-mess-dining',
+    title: 'Nutritious Mess & Dining Hall',
+    description: 'Spacious, clean, and hygienic dining facility offering balanced, wholesome, and nutritious meals prepared under strict quality and sanitation guidelines.',
+    image: '/uploads/images/settings/cafeteria.jpg',
+    features: ['Hygienic food preparation', 'Nutritious menu', 'Spacious dining hall', 'Clean drinking water (RO)']
+  },
+  {
+    id: 'hostel-recreation',
+    title: 'Recreation & Common Room',
+    description: 'A vibrant space equipped with indoor sports, television, and leisure reading materials for relaxation, cultural engagement, and building community bonds.',
+    image: '/uploads/images/settings/playground.jpg',
+    features: ['Indoor games (Table Tennis, Carrom)', 'Audio-Visual entertainment', 'Newspapers & Periodicals']
+  },
+  {
+    id: 'hostel-study-hall',
+    title: 'Dedicated Study & Reading Hall',
+    description: 'A tranquil, quiet study zone with high-speed Wi-Fi, reference collections, and optimal lighting enabling peaceful group discussions and evening study hours.',
+    image: '/uploads/images/settings/library.jpg',
+    features: ['High-speed Wi-Fi', 'Quiet atmosphere', 'Optimal reading lights', 'Reference materials']
+  }
+];
+
 export const initialStudentSupports = [
   {
     id: 'anti-ragging',

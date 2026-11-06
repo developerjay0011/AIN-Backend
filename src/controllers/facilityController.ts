@@ -16,13 +16,45 @@ const sanitizeDeep = (val: any): any => {
   return typeof val === 'string' ? sanitizeString(val) : val;
 };
 
+// --- Ensure Tables Exist Helper ---
+const ensureTablesExist = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hostel_facilities (
+      id VARCHAR(255) PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      image TEXT,
+      features TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+};
+
 // --- Unified Getter for All Facilities Data ---
 export const getFacilitiesData = asyncHandler(async (req: Request, res: Response) => {
-  // Query all four tables concurrently
+  await ensureTablesExist();
+
+  // Query all tables concurrently
   const [campusRows] = await pool.query('SELECT * FROM campus_facilities');
+  const [hostelFacRows] = await pool.query('SELECT * FROM hostel_facilities');
   const [hostelRows] = await pool.query('SELECT * FROM hostel_details WHERE id = ?', ['hostel']);
   const [snaRows] = await pool.query('SELECT * FROM sna_details WHERE id = ?', ['sna']);
   const [supportRows] = await pool.query('SELECT * FROM student_supports');
+
+  // Query Campus Hero settings
+  const [heroSettingsRows]: any = await pool.query(
+    "SELECT key_name, value FROM settings WHERE key_name IN ('FACILITIES_HERO_BADGE', 'FACILITIES_HERO_TITLE', 'FACILITIES_HERO_DESCRIPTION')"
+  );
+  const heroSettingsMap: Record<string, string> = {};
+  for (const row of heroSettingsRows || []) {
+    heroSettingsMap[row.key_name] = row.value;
+  }
+  const campusHero = {
+    badge: heroSettingsMap['FACILITIES_HERO_BADGE'] || 'Infrastructure',
+    title: heroSettingsMap['FACILITIES_HERO_TITLE'] || 'World-Class Facilities',
+    description: heroSettingsMap['FACILITIES_HERO_DESCRIPTION'] || 'Our 4-acre campus features state-of-the-art infrastructure designed to inspire learning, creativity, and holistic development.'
+  };
 
   // Format Campus
   const campusFormatted = (campusRows as any[]).map(row => ({
@@ -30,7 +62,13 @@ export const getFacilitiesData = asyncHandler(async (req: Request, res: Response
     features: row.features ? JSON.parse(row.features) : []
   }));
 
-  // Format Hostel
+  // Format Hostel Facilities
+  const hostelFacFormatted = (hostelFacRows as any[]).map(row => ({
+    ...row,
+    features: row.features ? JSON.parse(row.features) : []
+  }));
+
+  // Format Hostel Details
   let hostelFormatted = null;
   if ((hostelRows as any[]).length > 0) {
     const row = (hostelRows as any[])[0];
@@ -55,7 +93,9 @@ export const getFacilitiesData = asyncHandler(async (req: Request, res: Response
 
   const result = {
     campus: formatDataUrls(campusFormatted, ['image']),
+    campusHero,
     hostel: hostelFormatted ? formatDataUrls(hostelFormatted, ['ruleBookPdf']) : null,
+    hostelFacilities: formatDataUrls(hostelFacFormatted, ['image']),
     sna: snaFormatted,
     support: supportRows
   };
@@ -96,6 +136,70 @@ export const updateCampusFacility = asyncHandler(async (req: Request, res: Respo
     );
   }
   res.json(ApiResponse.success(null, 'Campus facility updated successfully'));
+});
+
+// --- Campus Facilities Hero / Header Update ---
+export const updateCampusHero = asyncHandler(async (req: Request, res: Response) => {
+  const { badge, title, description } = req.body;
+
+  const sanitizedBadge = badge !== undefined ? sanitizeString(badge) : 'Infrastructure';
+  const sanitizedTitle = title !== undefined ? sanitizeString(title) : 'World-Class Facilities';
+  const sanitizedDesc = description !== undefined ? sanitizeString(description) : '';
+
+  const upsertSetting = async (key: string, value: string, label: string) => {
+    await pool.query(
+      `INSERT INTO settings (id, key_name, value, label, group_name, type) 
+       VALUES (?, ?, ?, ?, 'facilities', 'text')
+       ON DUPLICATE KEY UPDATE value = VALUES(value)`,
+      [key, key, value, label]
+    );
+  };
+
+  await upsertSetting('FACILITIES_HERO_BADGE', sanitizedBadge, 'Facilities Hero Badge');
+  await upsertSetting('FACILITIES_HERO_TITLE', sanitizedTitle, 'Facilities Hero Title');
+  await upsertSetting('FACILITIES_HERO_DESCRIPTION', sanitizedDesc, 'Facilities Hero Description');
+
+  res.json(ApiResponse.success({
+    badge: sanitizedBadge,
+    title: sanitizedTitle,
+    description: sanitizedDesc
+  }, 'Facilities hero header updated successfully'));
+});
+
+// --- Hostel Facilities Update (Multiple structured facilities like Campus Facilities) ---
+export const updateHostelFacility = asyncHandler(async (req: Request, res: Response) => {
+  await ensureTablesExist();
+  const { id, title, description, image, features, delete: deleteFlag } = req.body;
+  if (!id) throw new ApiError(400, 'Hostel Facility ID is required');
+
+  if (deleteFlag === true) {
+    await pool.query('DELETE FROM hostel_facilities WHERE id = ?', [id]);
+    res.json(ApiResponse.success(null, 'Hostel facility removed successfully'));
+    return;
+  }
+
+  const sanitizedTitle = title ? sanitizeString(title) : '';
+  const sanitizedDesc = description ? sanitizeString(description) : '';
+  const finalFeatures = features ? JSON.stringify(sanitizeDeep(features)) : null;
+
+  const [existing]: any = await pool.query('SELECT id FROM hostel_facilities WHERE id = ?', [id]);
+  if (existing.length === 0) {
+    await pool.query(
+      'INSERT INTO hostel_facilities (id, title, description, image, features) VALUES (?, ?, ?, ?, ?)',
+      [id, sanitizedTitle, sanitizedDesc, image || null, finalFeatures]
+    );
+  } else {
+    await pool.query(
+      `UPDATE hostel_facilities 
+       SET title = ?, 
+           description = ?, 
+           image = COALESCE(?, image), 
+           features = ? 
+       WHERE id = ?`,
+      [sanitizedTitle, sanitizedDesc, image || null, finalFeatures, id]
+    );
+  }
+  res.json(ApiResponse.success(null, 'Hostel facility updated successfully'));
 });
 
 // --- Hostel Details Update ---

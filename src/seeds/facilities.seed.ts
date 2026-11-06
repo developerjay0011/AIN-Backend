@@ -2,6 +2,7 @@ import pool from '../config/db.js';
 import {
     initialCampusFacilities,
     initialHostelDetails,
+    initialHostelFacilities,
     initialSnaDetails,
     initialStudentSupports
 } from './data/facilities.js';
@@ -22,6 +23,22 @@ export const seedFacilities = async () => {
         );
     }
     console.log(`✅ Seeded ${initialCampusFacilities.length} campus facilities.`);
+
+    // 1b. Seed Hostel Facilities
+    console.log('🛏️ Seeding hostel facilities...');
+    for (const hf of initialHostelFacilities) {
+        await pool.query(
+            `INSERT INTO hostel_facilities (id, title, description, image, features)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE 
+                title = VALUES(title), 
+                description = VALUES(description), 
+                image = VALUES(image), 
+                features = VALUES(features)`,
+            [hf.id, hf.title, hf.description, hf.image || null, hf.features ? JSON.stringify(hf.features) : null]
+        );
+    }
+    console.log(`✅ Seeded ${initialHostelFacilities.length} hostel facilities.`);
 
     // 2. Seed Hostel Details
     console.log('🏠 Seeding hostel details...');

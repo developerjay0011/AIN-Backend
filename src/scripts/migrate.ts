@@ -397,6 +397,16 @@ const migrate = async () => {
           image TEXT,
           features TEXT
         )`,
+      hostel_facilities: `
+        CREATE TABLE IF NOT EXISTS hostel_facilities (
+          id VARCHAR(255) PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          description TEXT,
+          image TEXT,
+          features TEXT,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )`,
       hostel_details: `
         CREATE TABLE IF NOT EXISTS hostel_details (
           id VARCHAR(255) PRIMARY KEY,

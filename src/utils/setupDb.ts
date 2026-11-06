@@ -43,6 +43,7 @@ const setupDatabase = async () => {
       'courses',
       'programs',
       'campus_facilities',
+      'hostel_facilities',
       'hostel_details',
       'sna_details',
       'student_supports',
@@ -418,6 +419,15 @@ const setupDatabase = async () => {
         description TEXT,
         image TEXT,
         features TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS hostel_facilities (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        image TEXT,
+        features TEXT,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
       `CREATE TABLE IF NOT EXISTS hostel_details (
         id VARCHAR(255) PRIMARY KEY,

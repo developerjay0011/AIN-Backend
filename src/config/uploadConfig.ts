@@ -107,7 +107,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
  * Categorized Upload Middleware Factory
  * Returns a configured multer instance that saves files to uploads/{type}/{category}
  */
-export const categoryUpload = (category: string) => {
+export const categoryUpload = (category: string, maxFileSize: number = 50 * 1024 * 1024) => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
       let type = 'documents';
@@ -137,7 +137,7 @@ export const categoryUpload = (category: string) => {
     storage,
     fileFilter,
     limits: {
-      fileSize: 50 * 1024 * 1024, // 50MB maximum per file
+      fileSize: maxFileSize,
       files: 20 // Maximum 20 files per upload batch
     }
   });

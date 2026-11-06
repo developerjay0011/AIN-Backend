@@ -13,9 +13,10 @@ const router = Router();
 // GET all publications (public)
 router.get('/', getPublications);
 
-// Restricted CRUD
-router.post('/', authMiddleware, categoryUpload('publications').any(), createPublication);
-router.put('/:id', authMiddleware, categoryUpload('publications').any(), updatePublication);
+// Restricted CRUD (Supports up to 200MB uploads for publication documents)
+const PUBLICATION_MAX_FILE_SIZE = 200 * 1024 * 1024;
+router.post('/', authMiddleware, categoryUpload('publications', PUBLICATION_MAX_FILE_SIZE).any(), createPublication);
+router.put('/:id', authMiddleware, categoryUpload('publications', PUBLICATION_MAX_FILE_SIZE).any(), updatePublication);
 router.delete('/:id', authMiddleware, deletePublication);
 
 export default router;

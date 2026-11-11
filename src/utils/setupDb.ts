@@ -254,6 +254,7 @@ const setupDatabase = async () => {
         date VARCHAR(100),
         description TEXT,
         imageUrl TEXT,
+        images TEXT,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )`,
@@ -602,6 +603,11 @@ const setupDatabase = async () => {
       }
         try {
         await pool.query('ALTER TABLE alumni_registrations ADD COLUMN email VARCHAR(255)');
+      } catch (e) {
+        // column likely exists
+      }
+      try {
+        await pool.query('ALTER TABLE alumni_activities ADD COLUMN images TEXT');
       } catch (e) {
         // column likely exists
       }

@@ -159,4 +159,48 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   res.json(ApiResponse.success(null, 'Logged out successfully'));
 });
 
-export default { login, logout };
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id;
+  if (!userId) {
+    throw new ApiError(401, 'Authentication required');
+  }
+
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    throw new ApiError(400, 'Current password and new password are required');
+  }
+
+  if (typeof newPassword !== 'string' || newPassword.length < 6) {
+    throw new ApiError(400, 'New password must be at least 6 characters long');
+  }
+
+  if (currentPassword === newPassword) {
+    throw new ApiError(400, 'New password must be different from current password');
+  }
+
+  const [admins] = await pool.query('SELECT * FROM admins WHERE id = ?', [userId]);
+  const admin = (admins as any[])[0];
+
+  if (!admin) {
+    throw new ApiError(404, 'Admin account not found');
+  }
+
+  let isMatch = await bcrypt.compare(currentPassword, admin.password);
+  const defaultSha256 = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
+  if (!isMatch && currentPassword === defaultSha256) {
+    if (await bcrypt.compare('admin123', admin.password)) {
+      isMatch = true;
+    }
+  }
+
+  if (!isMatch) {
+    throw new ApiError(400, 'Current password is incorrect');
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await pool.query('UPDATE admins SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', [hashedPassword, userId]);
+
+  res.json(ApiResponse.success(null, 'Password changed successfully'));
+});
+
+export default { login, logout, changePassword };

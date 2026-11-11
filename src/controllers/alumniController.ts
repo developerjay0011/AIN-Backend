@@ -3,7 +3,7 @@ import pool from '../config/db.js';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse, ApiError } from '../utils/ApiResponse.js';
-import { formatDataUrls, getUploadPath } from '../utils/urlHelper.js';
+import { formatDataUrls, formatFileUrl, getUploadPath } from '../utils/urlHelper.js';
 import { sanitizeString, sanitizeObject, formatDateToYYYYMMDD, validateEmailDeliverable, isValidPhone, isValidName, containsHtml, isValidSafeText } from '../utils/sanitize.js';
 
 const isAdminRequest = (req: Request): boolean => {
@@ -92,21 +92,83 @@ export const syncAlumniHistory = asyncHandler(async (req: Request, res: Response
   res.json(ApiResponse.success(formatDataUrls(finalRows, ['imageUrl']), 'Alumni history synchronized successfully'));
 });
 
+let hasEnsuredActivityImages = false;
+const ensureActivityImagesColumn = async () => {
+  if (hasEnsuredActivityImages) return;
+  try {
+    await pool.query('ALTER TABLE alumni_activities ADD COLUMN images TEXT');
+  } catch {
+    // column already exists
+  }
+  hasEnsuredActivityImages = true;
+};
+
+const formatActivityRecord = (act: any) => {
+  let imagesArr: string[] = [];
+  if (act.images) {
+    try {
+      const parsed = typeof act.images === 'string' ? JSON.parse(act.images) : act.images;
+      if (Array.isArray(parsed)) imagesArr = parsed;
+    } catch {
+      imagesArr = [act.images];
+    }
+  }
+  if (imagesArr.length === 0 && act.imageUrl) {
+    imagesArr = [act.imageUrl];
+  }
+
+  // Ensure each URL in images array is prefixed with the base URL (APP_URL)
+  const formattedImages = imagesArr.map((img: string) => formatFileUrl(img));
+  const primaryImg = act.imageUrl ? formatFileUrl(act.imageUrl) : (formattedImages[0] || null);
+
+  return {
+    ...act,
+    imageUrl: primaryImg,
+    images: formattedImages
+  };
+};
+
 /**
- * Get all Alumni Activities
+ * Get all Alumni Activities (Chronological: Left-to-Right from oldest to newest)
  */
 export const getAlumniActivities = asyncHandler(async (req: Request, res: Response) => {
-  const [rows] = await pool.query('SELECT * FROM alumni_activities ORDER BY date DESC, createdAt DESC');
-  res.json(ApiResponse.success(formatDataUrls(rows, ['imageUrl']), 'Alumni activities fetched successfully'));
+  await ensureActivityImagesColumn();
+  const [rows] = await pool.query('SELECT * FROM alumni_activities ORDER BY date ASC, createdAt ASC');
+  const formattedRows = (rows as any[]).map(formatActivityRecord);
+  res.json(ApiResponse.success(formattedRows, 'Alumni activities fetched successfully'));
 });
 
 /**
  * Create or Update Alumni Activity
  */
 export const handleActivityPost = asyncHandler(async (req: Request, res: Response) => {
-  let { id, title, date, description } = sanitizeObject(req.body);
+  await ensureActivityImagesColumn();
+  let { id, title, date, description, existingImages } = sanitizeObject(req.body);
   date = formatDateToYYYYMMDD(date);
-  const imageUrl = req.file ? getUploadPath(req.file) : (req.body.imageUrl || null);
+
+  // Parse existing retained images
+  let existingList: string[] = [];
+  if (existingImages) {
+    try {
+      const parsed = typeof existingImages === 'string' ? JSON.parse(existingImages) : existingImages;
+      if (Array.isArray(parsed)) existingList = parsed;
+    } catch {
+      if (typeof existingImages === 'string') existingList = [existingImages];
+    }
+  } else if (req.body.imageUrl && typeof req.body.imageUrl === 'string') {
+    existingList = [req.body.imageUrl];
+  }
+
+  // Collect newly uploaded files (handles both req.files array and single req.file)
+  const newFiles = (req.files && Array.isArray(req.files))
+    ? (req.files as Express.Multer.File[])
+    : (req.file ? [req.file] : []);
+  const uploadedPaths = newFiles.map(f => getUploadPath(f));
+
+  // Combined full list of images
+  const allImages = [...existingList, ...uploadedPaths];
+  const primaryImageUrl = allImages.length > 0 ? allImages[0] : null;
+  const imagesJson = allImages.length > 0 ? JSON.stringify(allImages) : null;
 
   if (id === '0' || !id || id === 0) {
     if (!title) {
@@ -114,22 +176,28 @@ export const handleActivityPost = asyncHandler(async (req: Request, res: Respons
     }
     const newId = `ACT-${Date.now()}`;
     await pool.query(
-      'INSERT INTO alumni_activities (id, title, date, description, imageUrl) VALUES (?, ?, ?, ?, ?)',
-      [newId, title, date || null, description || null, imageUrl]
+      'INSERT INTO alumni_activities (id, title, date, description, imageUrl, images) VALUES (?, ?, ?, ?, ?, ?)',
+      [newId, title, date || null, description || null, primaryImageUrl, imagesJson]
     );
     const [newAct] = await pool.query('SELECT * FROM alumni_activities WHERE id = ?', [newId]);
-    return res.status(201).json(ApiResponse.success(formatDataUrls((newAct as any)[0], ['imageUrl']), 'Activity created successfully'));
+    return res.status(201).json(ApiResponse.success(formatActivityRecord((newAct as any)[0]), 'Activity created successfully'));
   } else {
     const [existing]: any = await pool.query('SELECT * FROM alumni_activities WHERE id = ?', [id]);
     if (existing.length === 0) {
       throw new ApiError(404, 'Activity not found');
     }
+
+    // If user provided image updates, apply them; otherwise keep existing images
+    const hasImageUpdates = allImages.length > 0 || req.body.existingImages !== undefined;
+    const finalImageUrl = hasImageUpdates ? primaryImageUrl : existing[0].imageUrl;
+    const finalImagesJson = hasImageUpdates ? imagesJson : existing[0].images;
+
     await pool.query(
-      'UPDATE alumni_activities SET title = COALESCE(?, title), date = COALESCE(?, date), description = COALESCE(?, description), imageUrl = COALESCE(?, imageUrl), updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
-      [title, date, description, imageUrl, id]
+      'UPDATE alumni_activities SET title = COALESCE(?, title), date = COALESCE(?, date), description = COALESCE(?, description), imageUrl = ?, images = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+      [title, date, description, finalImageUrl, finalImagesJson, id]
     );
     const [updatedAct] = await pool.query('SELECT * FROM alumni_activities WHERE id = ?', [id]);
-    return res.json(ApiResponse.success(formatDataUrls((updatedAct as any)[0], ['imageUrl']), 'Activity updated successfully'));
+    return res.json(ApiResponse.success(formatActivityRecord((updatedAct as any)[0]), 'Activity updated successfully'));
   }
 });
 

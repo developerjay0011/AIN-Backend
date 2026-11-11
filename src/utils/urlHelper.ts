@@ -51,8 +51,23 @@ export const ensureStringUrl = (input: any): string => {
 export const formatDataUrls = (data: any, keysToFormat?: string[]): any => {
   if (!data) return data;
 
+  if (typeof data === 'string') {
+    if (data.includes('/uploads/') || data.includes('localhost:5001') || data.startsWith('/uploads')) {
+      return formatFileUrl(data);
+    }
+    return data;
+  }
+
   if (Array.isArray(data)) {
-    return data.map(item => formatDataUrls(item, keysToFormat));
+    return data.map(item => {
+      if (typeof item === 'string') {
+        if (item.includes('/uploads/') || item.includes('localhost:5001') || item.startsWith('/uploads') || item.startsWith('/')) {
+          return formatFileUrl(item);
+        }
+        return item;
+      }
+      return formatDataUrls(item, keysToFormat);
+    });
   }
 
   // Only process plain objects, skip null and Date objects
@@ -83,6 +98,12 @@ export const formatDataUrls = (data: any, keysToFormat?: string[]): any => {
 
         if (shouldFormat) {
           formatted[key] = formatFileUrl(value);
+        }
+      } else if (Array.isArray(value)) {
+        if (!keysToFormat || keysToFormat.includes(key) || key.toLowerCase().includes('image') || key.toLowerCase().includes('photo')) {
+          formatted[key] = value.map(v => (typeof v === 'string' ? formatFileUrl(v) : formatDataUrls(v, keysToFormat)));
+        } else {
+          formatted[key] = formatDataUrls(value, keysToFormat);
         }
       } else if (typeof value === 'object') {
         formatted[key] = formatDataUrls(value, keysToFormat);

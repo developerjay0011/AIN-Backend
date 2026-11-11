@@ -39,7 +39,7 @@ router.put('/history', authMiddleware, categoryUpload('alumni').any(), syncAlumn
 
 // Activities
 router.get('/activities', getAlumniActivities);
-router.post('/activities', authMiddleware, categoryUpload('alumni').single('image'), handleActivityPost);
+router.post('/activities', authMiddleware, categoryUpload('alumni').any(), handleActivityPost);
 router.delete('/activities/:id', authMiddleware, deleteActivity);
 
 // Directory/Members

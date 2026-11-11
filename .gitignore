@@ -145,3 +145,9 @@ uploads/
 # Dev scratch files
 src/scratch/
 .DS_Store
+
+# Compressed archives
+*.zip
+*.tar.gz
+*.tgz
+*.rar
